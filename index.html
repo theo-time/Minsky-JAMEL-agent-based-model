@@ -1,0 +1,161 @@
+
+<head>
+	<link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style2.css"/>
+	<script src= globals.js></script>
+	
+	<script src=agents/agent.js></script>
+	<script src="agents/firms/firm.js"></script>
+	<script src="agents/firms/capitalGoodFirm.js"></script>
+	<script src="agents/worker.js"></script>
+	<script src="agents/firms/extractor.js"></script>
+	<script src="agents/bank.js"></script>
+	<script src="agents/markets.js"></script>
+	<script src="agents/speculator.js"></script>
+	<script src="agents/consumer.js"></script>
+	<script src="agents/smartFirm.js"></script>
+	<script src="population.js"></script>	
+	<script src="main.js"></script>	
+	<script src="setup.js"></script>	
+	<script src="UI/sankey.js"></script>
+	
+	<script src="lib/p5.js"></script>
+	<script src="lib/p5.dom.js"></script>
+	<script src="lib/d3.js"></script>
+	<script src="lib/plotly.js"></script>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<script src="https://wagenaartje.github.io/neataptic/cdn/1.4.7/neataptic.js"></script>
+
+	<script src=objects.js></script> 
+
+</head>
+
+<body>
+	<div id="header">
+		<div id="logo"> Economic Simulation </div>
+		<div id="years">10</div>
+		<div id="months">140</div>
+		<div id="FPS">30</div>
+	</div>
+
+	<div id="wrapper">
+		<div id="leftPanel">
+			<h1> Parameters </h1>
+			<link id="menu" class="component">
+				<div id="boostButton" class="menuButton"> Boost Mode </div>
+				<div id="graphButton" class="menuButton"> Graphics </div>
+				<div id="goodMarketButton" class="menuButton"> Goods Market </div>
+				<div id="canvaButton" class="menuButton"> Visualisation </div>
+				<div id="treemapButton" class="menuButton"> Treemap </div>
+				<div id="firmsButton" class="menuButton"> Firms </div>
+				<div id="workersButton" class="menuButton"> Workers </div>	
+				<div id="workersTableButton" class="menuButton"> Workers Tables </div>	
+				<div id="workersGraphButton" class="menuButton"> Workers Charts </div>	
+				<div id="SpeculatorsButton" class="menuButton"> Speculators </div>		
+				<div id="bankButton" class="menuButton"> Bank </div>	
+				<div id="bankChart" class="menuButton"> Bank Charts </div>
+				<div id="firmTableButton" class="menuButton"> Firms Tables </div>		
+				<div id="firmGraphButton" class="menuButton"> Firms Charts </div>			
+			</link>
+
+			<div id="Sliders" class="component"></div>
+			<div id="treemap1" class="component"></div>
+			<div id="treemap2" class="component"></div>
+			<div id="treemap3" class="component"></div>
+			<div id="Distrib" class="component">
+				<div class='title'>Money Distribution</div>
+				<div id ="ProdEq">
+					<svg id="equilibrium"></svg>
+				</div>
+			</div>
+
+			<div id="GlobalsC" class="component">
+				<div class='title'> Globals </div> 
+					<div  id="Globals" class="objPrinter"> </div>
+			</div>
+
+			<div class="component">
+				<div id="TotalStock" class="objPrinter">
+			</div>
+			</div>
+		</div>
+
+		<div id="viz">
+		</div>
+
+		<div id="tablePanel" class="component">
+			<div class="componentHeader">
+				<div class="closeButton" id="tableButton"></div>
+				<div class="minimiseButton" id="tableButton"></div>
+			</div>
+				<h1 id="title"> Trades Panel </h1>
+
+			<table id="table"> 
+				<colgroup>
+				    <col>
+				    <col width="100px">
+				    <col>
+				    <col>
+				    <col>
+				</colgroup>
+
+				<thead>
+					<td>Buyer</td>
+					<td>Seller</td>
+					<td>Prop</td>
+					<td>Price</td>
+					<td>Quantity</td>
+				</thead>
+
+				<tbody>
+				</tbody>
+			</table>
+		</div>
+
+
+		<!-- <script src=test.js></script> -->
+		<div id="param">
+
+			<h1>Market</h1>
+			<div id="Market" class="component">
+				<div class="shit"></div>
+				<div id="marketInfos" class="component">
+					<div class="colomn" id="col1">
+						<div>Buyer</div>
+					</div>
+					<div class="colomn" id="col2">
+						<div>Price</div>
+					</div>
+					<div class="colomn" id="col3">
+						<div>Seller</div>
+					</div>
+					<div class="colomn" id="col4">
+						<div>Price</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="component">
+				<div id="AgentsTable" class="objPrinter">
+				</div>
+			</div>
+
+			<div id="selectBlob">
+				<p id="blobInfos"></p>
+				<p id="frame_Count"></p>
+				<button id="newPop">New Population</button>
+			</div>
+
+			<div id="chart"></div>
+			
+		</div>
+	</div>
+</body>
+<script src=order.js></script>
+<script src=table.js></script>
+<script src=treemap.js></script>
+<script src=UI/interact.js></script>
+<script src=UI/GUI.js></script>
+<script src=chart.js></script>
+<script src=param.js></script>
+<script src=cellular.js></script>

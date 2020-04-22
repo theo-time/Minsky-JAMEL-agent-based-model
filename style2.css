@@ -1,0 +1,351 @@
+body
+{
+	font-family: 'Nunito', sans-serif;
+/*	font-family: nunito, helvetica, arial; */
+	margin:0px;
+	background: #232a3d; /*#edf2f6;*/
+	color: white /*#86ff36*/
+}
+
+#header
+{
+    height: 50px;
+    z-index: 100;
+    box-shadow: 1px 1px 3px black;
+    vertical-align:center;
+    background:black;
+    display:flex;
+    
+    flex-direction: row;
+}
+
+#header div
+{
+	font-size:20;
+	flex: 0 0 auto;
+	border: 1px #86ff36 solid;
+  	text-align: center;
+  	align-items: center;
+}
+
+#logo 
+{
+	font-size: 30;
+	font-weight: bold;
+	background:-webkit-linear-gradient(-45deg, #102651 1%,#163a77 53%,#207cca 81%,#7db9e8 100%); /* Chrome10-25,Safari5.1-6 */;
+    -webkit-background-clip: text;
+  	-webkit-text-fill-color: transparent;
+}
+
+#wrapper
+{
+	display: flex;
+	flex-direction: row;
+	/*height: 830px;
+	background: #e1e1e6 /*#28313d /*#fcd450;*/
+	z-index:-1;
+	height: 100%;
+}
+
+
+#viz
+{
+	flex-grow: 1;
+	min-width: 840;
+	height: 840;
+	padding: 15px;
+	margin: 10px;
+	border: 2px solid;
+	display:flex;
+	flex-wrap: wrap;
+}
+
+#param
+{
+	flex: 1 1 auto;
+
+	display : flex;
+	flex-direction: column;
+	text-align: center;
+	width : 400px;
+	height : 100% - 60px;
+}
+
+#newPop
+{
+	flex: 0 0 auto;
+	font-size: 20;
+}
+
+#defaultCanvas0
+{
+  top : 300;
+}
+
+#selectBlob
+{
+	/*width: 300px;*/
+	height: 200px;
+	margin: 20px;
+	background : rgba(0,0,20,0.3);
+	/*border: 2px black solid;*/
+	box-shadow: 
+	padding: 10px;
+}
+
+
+.component
+{
+	display:flex;
+	align-items:stretch;
+	flex-direction: column;
+	background: rgba(0,0,0,0.3);
+	text-align: center;
+	width: auto;
+
+	/*background: white;*/
+
+	margin:10px;
+	border: 1px #30ff30 solid;
+	border-radius: 10px;
+	overflow:hidden;
+	/*box-shadow: 10px 10px black;*/
+}
+
+.component .title 
+{
+	font-size: 20;
+}
+
+#tablePanel{
+	min-width:320px;
+}
+
+#tablePanel #title{
+	margin:0px;
+}
+
+#table {
+/*	display: flex;
+	flex-wrap: nowrap;
+	flex-direction: column;*/
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
+/*tbody {
+    table-layout: auto;
+    border-collapse: collapse;
+}*/
+
+
+
+#table tr {
+	font-size:15;
+	height:10px;
+	white-space: nowrap;
+}
+
+#table td {
+	max-width:50;
+	overflow: hidden;
+}
+
+#MacroData {
+	flex: 1 0 auto;
+	display: flex;
+	flex-direction: column;
+}
+
+#Boxes {
+	background: gray;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#Boxes div {
+	margin: 5px;
+	background: white;
+}
+
+
+.menuButton {
+	padding:10px;
+
+}
+
+.menuButton:hover {
+	background: black;
+	cursor:pointer;
+}
+
+table,
+td {
+    border: 1px solid #333;
+}
+
+thead,
+
+tfoot 
+{
+    background-color: #333;
+    color: #fff;
+}
+
+.column2
+{
+	background:gray;
+}
+
+/*  Market Panel */
+
+#marketInfos 
+{
+	display:flex;
+	flex-direction: row;
+	padding:5px;
+	height: 500px;
+	overflow:hidden;
+}
+
+.colomn
+{
+	flex: 1 1 0;
+
+	display:flex;
+	flex-direction: column;
+	text-align:center;
+}
+
+.colomn div 
+{
+	text-align:center;
+	border: 2px solid black;
+	flex: 0 0 auto;
+}
+
+
+/*  Sliders */
+
+.slContainer 
+{
+	display:flex;
+	flex-direction:row;
+}
+
+.slContainer div
+{
+	min-width: 100px;
+	overflow: hidden;
+}
+
+.slContainer p
+{
+	margin-block-start: 0.3em;
+    margin-block-end: 0.3em;
+}
+
+#Distrib
+{
+	padding:5px;
+}
+
+#leftPanel
+{
+	/*border: 1px gray solid;*/
+	max-width: 368px;
+	text-align: center;
+	background: #232a3d;
+}
+
+#GlobalsTable
+{
+	display: flex;
+	flex-direction: row;
+}
+
+.objPrinter 
+{
+	flex: 1 1 auto;
+	overflow: scroll;
+}
+
+.objPrinter div 
+{
+	display: flex;
+}
+
+.objPrinter div p
+{
+	flex: 1 1 auto;
+	margin-block-start: 0.3em;
+    margin-block-end: 0.3em;
+}
+
+.objPrinter div:nth-child(2n)
+{
+	background: rgba(117,117,117, 0.8);
+}
+
+
+/* Object Printer Box Styling */
+
+
+.firmPrinter {
+	display: flex;
+	flex-wrap: wrap;
+	padding: 10px;
+}
+
+.Box {
+	margin:5px;
+	border: 2px black solid;
+	border-radius: 10px;
+}
+
+.Box div 
+{
+	margin: 5px;
+	padding:2px;
+	display: flex;
+	justify-content: space-evenly;
+	background: rgba(20,20,0,0.5);
+}
+
+.Box div p
+{
+	flex: 1 1 25%;
+	margin-block-start: 0.3em;
+    margin-block-end: 0.3em;
+}
+
+.Box div:nth-child(2n)
+{
+	background: rgba(117,117,117, 0.8);
+}
+
+.boxTitle {
+	font-size:20;
+	font-weight: bold;
+	color:black;
+}
+
+
+.componentHeader {
+	height:25px;
+	background:#393c51;
+	display: flex;
+	justify-content: start
+}
+
+.closeButton {
+	background:red;
+	width: 25px;
+	height:100%;
+}
+
+.minimiseButton {
+	background: yellow;
+	width: 25px;
+	height:100%;
+}

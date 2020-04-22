@@ -1,0 +1,204 @@
+body
+{
+	font-family: helvetica, arial;
+	margin:0px;
+}
+
+#header
+{
+    height: 50px;
+    background:#012866;
+    z-index: 100;
+    color:#c9fcff;
+    box-shadow: 1px 1px 3px black;
+    vertical-align:center;
+}
+
+#wrapper
+{
+	display: flex;
+	flex-direction: row;
+	/*height: 830px;
+	background: #e1e1e6 /*#28313d /*#fcd450;*/
+	z-index:-1;
+}
+
+
+#viz
+{
+	background: orange;
+	width: 800;
+	height: 800;
+	padding: 15px;
+	margin:10px;
+}
+
+#param
+{
+	flex: 1 1 auto;
+
+	display : flex;
+	flex-direction: column;
+	width : 400px;
+	height : 100% - 60px;
+	background: #46fc7d;
+}
+
+#newPop
+{
+	flex: 0 0 auto;
+	font-size: 20;
+}
+
+#defaultCanvas0
+{
+  top : 300;
+}
+
+#selectBlob
+{
+	/*width: 300px;*/
+	height: 200px;
+	margin: 20px;
+	background : rgba(0,0,20,0.3);
+	/*border: 2px black solid;*/
+	box-shadow: 
+	padding: 10px;
+}
+
+#Globals
+{
+	font-size: 20;
+	background: rgba(0,0,0,0.3);
+}
+
+.component
+{
+	text-align: center;
+	width: auto;
+	background:#f5ba62;
+	margin:10px;
+	box-shadow: 10px 10px black;
+}
+
+#tablePanel #title{
+	margin:0px;
+}
+
+#table {
+	display: flex;
+	flex-wrap: nowrap;
+	flex-direction: column;
+}
+
+#tableButton{
+	height:30px;
+	background: rgba(0,0,0,0.4);
+}
+
+#MacroData {
+	flex: 1 0 auto;
+	display: flex;
+	flex-direction: column;
+}
+
+#Boxes {
+	background: gray;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#Boxes div {
+	margin: 5px;
+	background: white;
+}
+
+#graphButton {
+	background: #e05c5c;
+	padding:10px;
+
+
+}
+
+#canvaButton {
+	background: #80b0fc;
+	padding:10px;
+
+}
+
+#networkButton {
+	background: #80b0fc;
+	padding:10px;
+
+	background: #8ae371;
+}
+
+table,
+td {
+    border: 1px solid #333;
+}
+
+thead,
+
+tfoot 
+{
+    background-color: #333;
+    color: #fff;
+}
+
+.column2
+{
+	background:gray;
+}
+
+/*  Market Panel */
+
+#marketInfos 
+{
+	display:flex;
+	padding:5px;
+	background:gray;
+	height: 500px;
+	overflow:hidden;
+}
+
+.colomn
+{
+	flex: 1 1 auto;
+	display:flex;
+	flex-direction: column;
+	text-align:center;
+}
+
+.colomn div 
+{
+	text-align:center;
+	border: 2px solid black;
+	flex: 0 0 auto;
+}
+
+
+/*  Sliders */
+
+.slContainer 
+{
+	display:flex;
+	flex-direction:row;
+}
+
+.slContainer div
+{
+	min-width: 100px;
+	overflow: hidden;
+}
+
+.slContainer p
+{
+	margin-block-start: 0.3em;
+    margin-block-end: 0.3em;
+}
+
+#equilibrium 
+{
+	border : 2px black solid;
+}
