@@ -14,7 +14,7 @@ SliderBox.createSlider("Minimum Wage", 0, 200, 10, 1, function(e){
     console.log(minimumWage)
 })
 
-SliderBox.createSlider("FPS", 0, 100, 2, 0.1, function(e){
+SliderBox.createSlider("FPS", 0, 100, 40, 0.1, function(e){
     frameRate(parseInt(e.target.value,10))
 })
 
