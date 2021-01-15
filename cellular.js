@@ -136,6 +136,7 @@ var totalDebtArr = []
 
 function setup() {
   initialisation();
+  frameRate(FPS)
 }
 
 
