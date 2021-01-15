@@ -9,7 +9,7 @@ For a more precise and formal description of the model, you can refer to my mast
 
 Instructions to run the model :
 
-- Run "index.html" on your favorite browser or use this link : http://htmlpreview.github.io/?https://github.com/theo-time/Minsky-JAMEL-agent-based-model.git/index.html
+- Run "index.html" on your favorite browser or use this link : http://htmlpreview.github.io/?https://raw.githubusercontent.com/theo-time/Minsky-JAMEL-agent-based-model/master/index.html
 - click on "boost" mode for quickier simulation speed
 - I recommend pausing the model with space bar to go in the graphics sections and analyse results.
 
