@@ -7,10 +7,12 @@ The model was largely inspired by JAMEL, an ABM model developed by Pascal Seppec
 
 For a more precise and formal description of the model, you can refer to my master thesis that you can find in the repository. 
 
-Instructions to run the model :
 
-- Run "index.html" on your favorite browser or use this link : http://htmlpreview.github.io/?https://raw.githubusercontent.com/theo-time/Minsky-JAMEL-agent-based-model/master/index.html
-- click on "boost" mode for quickier simulation speed
+*****  Instructions to run the model  *****
+
+- Run "index.html" on your favorite browser 
+  or use this link : http://htmlpreview.github.io/?https://raw.githubusercontent.com/theo-time/Minsky-JAMEL-agent-based-model/master/index.html
+  
 - I recommend pausing the model with space bar to go in the graphics sections and analyse results.
 
 Any feedback would be much welcomed and feel free to contact me if you are interested to work on the project. 
