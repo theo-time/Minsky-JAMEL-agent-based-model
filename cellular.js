@@ -118,7 +118,7 @@ var scaleValue = 1
 
 var playcanva = true
 var playchart = false
-var visual = "treemap"
+var visual = "boost"
 
 var graphSize = 450
 
@@ -126,7 +126,7 @@ var timePeriod = 10
 
 var Dates = []
 var frameTime = 1
-var FPS = 1
+var FPS = 100
 var Duration = 0 
 
 var basePrice = 0
