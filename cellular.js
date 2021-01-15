@@ -44,23 +44,7 @@ function replaceAgents() {
         break
       }
     }
-       //  console.log("u before splicing", u, "time", frameCount, "i", i)
-       //  console.log(Firms[i].id,AgentsGarbage[u].id)
-       // if (Firms[i].id == AgentsGarbage[u].id) {
-       //   console.warn(Firms[i],AgentsGarbage[u])
-       //   deadFirms.push(firm)
-       //   var id = Firms[i].id
-       //   Firms.splice(i, 1); 
-       //   console.log("u after splicing", u)
-       //   AgentsGarbage.splice(u,1)
-
-       //   Firms.push(new Firm(100*id + 100,250,id))
-       //   u--;
-       //   i = Firms.length;
-       //   console.log("u after adjuts", u)
-       //   console.log(AgentsGarbage)
-       //   nriter = 9
-       // }
+  
     
   }
 }
@@ -76,8 +60,8 @@ function newId() {
   return lastId 
 }
 
-var nbr_consumers = 285
-var nbr_industrials = 15
+var nbr_consumers = 640
+var nbr_industrials = 60
 
 
 var Resources = ['rock', "wood", "food", "iron", "house", "gold", "jewels"]
@@ -126,7 +110,7 @@ var ProdMatrix = {
     house:[1,1,1,0,3]
 }
 
-var minimum_wage = 3
+var minimum_wage = 1
 
 var spaceBetween = 100
 var agentSize = 70
@@ -447,4 +431,14 @@ function distribute(arr, n) {
   for(var i = 0; i < arr.length; i++) {
     arr[i].money += n
   }
+}
+
+function myFunction(inputTab) {
+
+    for(i=0; i < inputTab.length; i++) {
+
+        
+        
+    }
+    return "ça marche"
 }

@@ -3,17 +3,38 @@ function main() {
 
   // ++++++++++++++++ Simulation ++++++++++++
 
-  if(frameCount == 240) {
-    // shock(Workers, "savePropensity", 0.05)
+  if(frameCount == 300) {
+    // shock(Workers, "savePropensity", 0.4)
     // productivityShock(5)
+     // shock(Firms, "target_debt_ratio", 3/10)
   }
+
+  if(frameCount == 400) {
+    // shock(Workers, "savePropensity", 0.2)
+    // productivityShock(5)
+     // shock(Firms, "target_debt_ratio", 3/10)
+  }
+
+  if(frameCount > 300 && frameCount < 600) {
+    // additiveShock(Firms, "dividends_ratio", 0.2/300)
+  }
+
+
 
   workMarket.clearOffers();
   localMarket.clearOffers();
+  stockMarket.clearOrders();
+
 
   Firms.do("ageing")
+  Workers.do("ageing")
   Bank.ageing()
+  state.ageing()
+
   Workers.do("depositAccount")
+  state.init()
+
+  Bank.interestAdjust()
 
   Bank.payDividends();
 
@@ -21,6 +42,7 @@ function main() {
   for(i=0; i < Firms.length; i++){
     firm = Firms[i];
     firm.payDividends()
+    firm.profitTax()
     firm.compute()
     // firm.brainProcess()
     firm.productionChoice()
@@ -40,10 +62,14 @@ function main() {
     worker = Workers[i];
     worker.acceptedWageAdjust();
     worker.findJob();
-    worker.budget();
     worker.exhaust = 1
   }
+  
 
+  state.budget()
+  state.Allocations()
+
+  Workers.do("budget")
 
   // Production 
  shuffler(Firms)
@@ -52,23 +78,35 @@ function main() {
     firm.production2()
     firm.priceCalc()
     firm.sell()
+    firm.investment_choice()
   }
 
   localMarket.operate();
 
-  Workers.do("spend2")
-  Workers.do("eatFood")
+  shuffler(Workers)
+  Firms.do("invest")
+  Workers.do("spend")
+  state.spend()
 
-  Bank.recoverDoubtful()
+  Workers.do("eatFood")
+  // Workers.do("portfolioBehavior")
+  stockMarket.operate();
+
+
+
+  // Bank.recoverDoubtful()
   Bank.recoverCredits()
   Bank.balanceSheetCalc()
-  Bank.resultCalc()
+
+  state.resultCalc()
 
   Firms.do("resultCalc")
-  Firms.do("buildBalanceSheet")
+  Firms.do('createMachine')
+  // Firms.do("buildBalanceSheet")
 
+  Bank.handleBankruptcies()
+  Bank.resultCalc()
   //  -------- Market ----------------
-
   workMarket.operate();
   // Workers.do("test")
   // --------- Globals  ---------
@@ -81,17 +119,21 @@ function main() {
   if(frameCount % timePeriod == 0) { 
     Globals.stockCalc(); 
     Globals.yearlyCalc();
+    FirmsPop.evaluate();
+    Firms.do("evolve");
   }
-
   Globals.arrayConstruct();
 
+  // if(frameCount < 170) {
+  //   growth()
+  // }
 
   // ------- Date and Time -------
 
   Dates.push(Date.now())
   Time.push(frameCount)
 
-   // replaceAgents();
+  replaceAgents();
 
 
   // [ -------- EVOLUTION -------- ]
@@ -130,6 +172,17 @@ function productivityShock(x) {
 }
 
 function shock(arr, prop, x) {
+  for(var i = 0; i < arr.length; i++) {
+      arr[i][prop] = x
+  }
+}
+
+
+function growth() {
+  Workers.push(new Worker(100,100, Workers.length))
+}
+
+function additiveShock(arr, prop, x) {
   for(var i = 0; i < arr.length; i++) {
       arr[i][prop] += x
   }

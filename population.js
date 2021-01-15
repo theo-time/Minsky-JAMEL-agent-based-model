@@ -32,7 +32,6 @@ function Population(agent, popSize) {
   // }
 
   this.evaluate = function() {
-    console.log('evaluating')
 
     // Calculating Maximum Fitness && Assigning fitness // 
     var maxfit = 0
@@ -42,7 +41,6 @@ function Population(agent, popSize) {
         maxfit = this.Blobs[u].fitness;
       }                   
     }
-    console.warn("Fitness assigned Blobs", Pop.Blobs)
 
     MaxfitElt = document.createElement('p')
     MaxfitElt.textContent = maxfit
@@ -53,7 +51,7 @@ function Population(agent, popSize) {
     for(var i= 0; i < this.infos.popSize; i++) {
       this.Blobs[i].fitness /= maxfit;
     }
-
+    czni = dzino
   }
 
 
@@ -65,11 +63,9 @@ function Population(agent, popSize) {
       output[prop] = 0; // init on 0 
       for(var p in this.Blobs) {
         output[prop] += this.Blobs[p][prop]
-        console.log(i, output[prop], this.Blobs[p]) // incremented by Blob value
       }
       output[prop] = output[prop] / this.Blobs.length
     }
-    console.log(output)
     return output
   }
 
@@ -121,7 +117,6 @@ function Population(agent, popSize) {
       brain = this.neat.population[i];
       this.Blobs[i] = new agent(50 + random(width-100), 50 + random(height-100), "NEAT" + i, brain); //new Blob(50 + random(width-100), 50 + random(height-100), childDNA,parentA, parentB);
     }
-    console.log(this.Blobs)
   }
 
 
@@ -131,7 +126,6 @@ function Population(agent, popSize) {
     for(var i in this.Blobs) {
       this.Blobs[i].fitnessCalc();
     }
-    console.log('Generation:', this.neat.generation, '- average score:', this.neat.getAverage());
 
     this.Scores.push(this.neat.getAverage())
 
@@ -161,7 +155,7 @@ function Population(agent, popSize) {
   }
 
   this.evaluateFitness = function() {
-    console.log('evaluating')
+    // console.log('evaluating')
 
     // Calculating Maximum Fitness && Assigning fitness // 
     var maxfit = 0
@@ -171,7 +165,7 @@ function Population(agent, popSize) {
         maxfit = this.Blobs[u].fitness;
       }                   
     }
-    console.warn("Fitness assigned Blobs", Pop.Blobs)
+    // console.warn("Fitness assigned Blobs", Pop.Blobs)
 
     // MaxfitElt = document.createElement('p')
     // MaxfitElt.textContent = maxfit
@@ -184,5 +178,79 @@ function Population(agent, popSize) {
     }
 
   }
+
+}
+
+
+function Population2(agents) {
+  this.Blobs = agents;
+  this.matingpool = [];
+
+  this.infos = {
+    generation:0,
+    averageFitness:0,
+    popSize:0,
+    mutationRate:1/100,
+  }
+
+
+  this.evaluate = function() {
+
+
+    // Calculating Maximum Fitness && Assigning fitness // 
+    var maxfit = 0
+    for(var u = 0; u < this.Blobs.length; u++) {
+      this.Blobs[u].fitnessCalc();
+      if (this.Blobs[u].fitness > maxfit) {
+        maxfit = this.Blobs[u].fitness;
+      }                   
+    }
+
+    // MaxfitElt = document.createElement('p')
+    // MaxfitElt.textContent = maxfit
+    // globalElt.appendChild(MaxfitElt)
+    this.averageFitnessCalc();
+
+    // Mapping fitness to max // 
+    for(var i= 0; i < this.Blobs.length; i++) {
+      this.Blobs[i].fitness /= maxfit;
+    }
+
+    // filling the mating pool // 
+    this.matingpool = [];
+    for(var i= 0; i < this.Blobs.length; i++) {
+     // console.log(this.Blobs[i])
+      var n = this.Blobs[i].fitness * 100;
+      for(var j = 0; j < n; j++) {
+        this.matingpool.push(this.Blobs[i]);
+      }
+    }
+
+  }
+
+  this.selection = function() {
+
+    var newBlobs = [];
+    for (var i = 0; i < this.Blobs.length; i++) {
+    var parentA = random(this.matingpool);
+    var parentB = random(this.matingpool);
+    var childDNA = parentA.DNA.crossover(parentB.DNA, "Maxlife");
+    childDNA.mutation();
+    newBlobs[i]= new Blob(50 + random(width-100), 50 + random(height-100), childDNA);
+    }
+    this.Blobs = newBlobs;
+  }
+  
+
+  this.averageFitnessCalc = function() {
+    var totalfitness = 0
+    for(var i=0; i < this.Blobs.length; i++) {
+        totalfitness += this.Blobs[i].fitness
+
+    }
+    this.infos.averageFitness = totalfitness / this.Blobs.length
+    // console.log(this.infos.averageFitness)
+  }
+
 
 }

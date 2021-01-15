@@ -4,7 +4,6 @@ function Firm (x, y, id, prop, brain) {
   agent.call(this,x, y, id, brain)
   
   this.id = "firm" + String(newId()) ;
-  console.log(this.id)
 
   this.type = 'firm';
   this.clor = [0,250,250]
@@ -19,37 +18,56 @@ function Firm (x, y, id, prop, brain) {
     // Balance Sheet
     cash:0,
     Money:0,
+    retained_earnings:0,
+    fixedCapital:0,
     debt:0,
     leverage:0,
-    ownFunds:0,
+    cash_flows:0,
+    equity_ratio:0,
+    assets:0,
+    equity:0,
 
     //Income
     margin:0,
     sales:0,
     wageBill:0,
     final_wageBill:0,
+    pretax_income:0,
+    profit_tax:0,
     income:0,   
     debt_charge:0,
+    miscellaneous:0,
     doubtfulDebt:0,
     dividends:0,
+    profit_rate:0,
 
     // Flows 
     loans:0,
 
     // Behaviour
+    nbr_machines:0,
     nbr_employees:0,
-    Production:0,
     target_employment:0,
     delta_employmentArr:0,
+    capacity_utilization:0,
+    smooth_capacity_utilization:0,
+    Production:0,
+    investment:0,
+    effectiveInvest:0,
     wage:0,
     fullEmployment:0,
     vacancies:0,
 
     unsold_stock:0,
     unsold_ratio:0,
+    unsold_prod:0,
     stock_ratio_after_prod:0,
 
     price:0,
+    Offer:0,
+    unitCost:0,
+    unsold_prod:0,
+    stocks_value:0
 
   }
 
@@ -57,10 +75,16 @@ function Firm (x, y, id, prop, brain) {
 
   }
 
+  //  FIXED CAPITAL 
+
+  this.machine_productivity = 40
+  this.machine_value = 220
+  this.max_machines = 60;
+
   this.Machines = []
-  this.nbr_machines = randomInt(20,26)
+  this.nbr_machines = [7]
   for(var p=0; p < this.nbr_machines; p++) {
-    this.Machines.push(new Machine(40))
+    this.Machines.push(new Machine(this.machine_productivity,this.machine_value * 10 ))
   }
 
 
@@ -73,47 +97,63 @@ function Firm (x, y, id, prop, brain) {
   // | -- PARAMETERS -- |
   this.good = prop
 
-  this.production_flexibility = 1/6;
-  this.production_adjust_delay = 3;
-  this.target_reserves = 0.3
+  this.production_flexibility = 0.1;
+  this.production_adjust_delay = randomInt(2,5);
+  this.capa_util_smoothing = 1
+  this.capacity_utilization_target = 0.81
+
+  this.target_debt_ratio = Math.random(1)
+  this.dividends_ratio = 0.3
+
+
+
 
   // Own parameters - specific to one firm
   this.production_capacity; 
   this.production_duration = 1
-  this.selling_capacity;
-  this.wage_adjust_delay = randomInt(0,7);
+  this.commercial_capacity = 6
+  this.wage_adjust_delay = randomInt(0,6);
   this.wage_flexibility = 0.01;
-  this.price_flexibility = 0.01;
-  this.m_price_flexibility = 0.05;
+  this.price_flexibility = 0.04;
+  this.m_price_flexibility = 0.04;
+  // this.max_dividend_rate = 0.2;
+
 
   // | -- STATE VARIABLES -- |
 
   this.income = [0];
   this.debt_charge = [0];
+  this.miscellaneous = [0,0]
   this.interest_charge = [0];
   this.netResult;
   this.dividends = [0,0];
   this.cash_after_dividends;
   this.cash = [0,0]
+  this.fixedCapital = [0]
 
-  this.ownFunds = [0, 0];
+  this.equity = [0, 0];
   this.reimbursment;
   this.BFR;
   this.loans = [0];
 
   this.stock_after_prod;
   this.unsold_stock = [0];
-  this.target_employment = [10];
+  this.target_employment = [7];
+  this.investment = [0];
+  this.effectiveInvest = [0];
 
   this.fullEmployment_time = 0;
   this.wage  = [300]; 
   this.wageBill = [0];
-  this.price = [7];
+  this.price = [10];
+
+  this.profit_rate = [0]
 
 
   // | -- AUXILIARY VARIABLES -- |
 
   this.capacity_utilization = [0];
+  this.smooth_capacity_utilization = [0];
   this.vacancies = [0]
   this.unsold_ratio = [0]
   this.sales = [0];
@@ -138,10 +178,30 @@ function Firm (x, y, id, prop, brain) {
   this.Production = [0]
   this.internal_financing = [0]
   this.doubtfulDebt = [0]
+  this.unitCost = [0]
+  this.unsold_prod = [0]
+  this.stocks_value =[0]
+  this.cash_flows = [0]
+  this.retained_earnings = [0]
+  this.assets = [0]
+  this.equity_ratio = [0]
+  this.debt_ratio = [0]
+  this.minsky_type = "hedge"
+  this.annual_income = [0]
+  this.target_debt_ratio_arr = [0]
+  this.pretax_income = [0]
+  this.profit_tax = [0,0]
+  this.fitness; 
+  this.nominal_fitness = [0];
+  this.fitness_score = [0];
+  this.annual_debt_charge = [0];
+  this.annual_interest_charge = [0]; 
 
   // Tracking
   this.fullEmployment = []
   this.delta_employmentArr = []
+  this.Offer = []
+
 
   // this.render = function() {
   //   this.production_capacity = this.employees.length * 
@@ -169,12 +229,16 @@ function Firm (x, y, id, prop, brain) {
     }
   }
 
-  this.ageing = function() {
-    this.age = frameCount - this.creation
-  }
-
   this.compute = function() {
-    this.production_capacity = sumProp(this.Machines, "productivity")// this.employees.length * this.Machines[0].productivity //sumProp(this.Machines, "productivity")
+    let delay = Math.min(frameCount, timePeriod/2)
+    var lastProds = this.Production.slice(-delay)
+    let meanProd = mean2(lastProds)
+    if(meanProd > 0){
+      this.production_capacity = this.Machines.length * this.Machines[0].productivity//mean2(lastProds)  
+    }   //this.employees.length * this.Machines[0].productivity // sumProp(this.Machines, "productivity")// this.employees.length * this.Machines[0].productivity //sumProp(this.Machines, "productivity")
+    // console.log(this.Production, lastProds, this.production_capacity)
+    // if(frameCount > 100) {dzdn = dznin}
+    this.commercial_capacity = 2 * this.production_capacity  //* this.employees.length * this.Machines[0].productivity
     this.debt_charge[this.age] = 0
     this.interest_charge[this.age] = 0
   }
@@ -185,6 +249,15 @@ function Firm (x, y, id, prop, brain) {
 
     var unsold_ratio = this.stock.food / this.production_capacity
     this.unsold_ratio.push(unsold_ratio)
+    this.investment[t] = 0;
+
+    // remove destroyed machines
+    for(var i = 0; i < this.Machines.length; i++ ) {
+      if(this.Machines[i].deterioration <= 0){
+        this.Machines.splice(i,1)
+        i--
+      }
+    }
 
     if(this.age > 0 && this.age % this.production_adjust_delay == 0) {
       // console.warn("ADJUST target_employment")
@@ -206,7 +279,7 @@ function Firm (x, y, id, prop, brain) {
         }
         else {
 
-          this.target_employment[t] = this.Machines.length 
+          this.target_employment[t] = this.Machines.length;
 
         }
 
@@ -222,7 +295,25 @@ function Firm (x, y, id, prop, brain) {
     else {
       this.target_employment[t] = this.target_employment[t-1]
     }
+    // WAAAAAAAAARNNNNNNNIIIIIIIIIIINGGGGGGGGG --> bad and unchecked
+    if(this.target_employment[t] > this.Machines.length) {
+        // this.investment[t] = this.target_employment[t] - this.Machines.length
+        this.target_employment[t] = this.Machines.length
+    }
     
+  }
+
+  this.createMachine = function(n) {
+    for(var i = 0; i < n; i++ ){
+      if(this.stock.food >= this.machine_value){
+          this.stock.food -= this.machine_value
+          this.Machines.push(new Machine(this.machine_productivity, this.effectiveInvest[t]/n))
+      }
+      else{
+        console.error("Not enough food to create machine")
+        dzdn = adin
+      }
+    }
   }
 
   this.Recruit = function() {
@@ -235,6 +326,7 @@ function Firm (x, y, id, prop, brain) {
         // console.warn(" END OF CONTRACT ",this.employees[c] )
         this.employees[c].worker.employed = false;
         this.employees[c].worker.lastEmployer = this.id;
+        this.employees[c].worker.lastWage =  this.employees[c].wage
         this.employees[c].worker.contract = 0;
         this.employees.splice(c,1);
         c--;
@@ -253,48 +345,166 @@ function Firm (x, y, id, prop, brain) {
     var t = this.age
     // Wage Adjusting   ------
 
-    // Labour Market Perception
-
-    if(this.fullEmployment_time > this.wage_adjust_delay) {
-      var adjust = -this.wage_flexibility
-    }
-    else if(this.fullEmployment_time < -this.wage_adjust_delay) {
-      var adjust = this.wage_flexibility
-      // console.warn("wage adjust : ", adjust, this.fullEmployment_time)
-    }
-    else {
-      var adjust = 0
+    if(frameCount > 30 && this.employees.length < 3) {
+      let samp = samplie(Firms, 3)
+      for(var i = 0; i < samp.length; i++) {
+        if(samp[i].Machines.length > this.Machines.length){
+          this.wage[t] = samp[i].wage[t-1]
+        }
+      }
+      // this.wage[t] = workMarket.data.bestWage[t-1]
     }
 
-    // Wage Adjust 
+    // console.log(this.wage[t])
 
-    if((1 + adjust) * this.wage[t-1] > minimum_wage) {
-      this.wage[t] = (1 + adjust) * this.wage[t-1]
+    // Price Maker firm
+    if(!this.wage[t]) {
+      if(this.fullEmployment_time > this.wage_adjust_delay ) {
+        var adjust = -this.wage_flexibility
+      }
+      else if(this.fullEmployment_time < -this.wage_adjust_delay) {
+        var adjust = this.wage_flexibility
+        // console.warn("wage adjust : ", adjust, this.fullEmployment_time)
+      }
+      else {
+        var adjust = 0
+      }
+
+      // Wage Adjust 
+
+      if((1 + adjust) * this.wage[t-1] > minimum_wage) {
+        this.wage[t] = Math.round((1 + adjust) * this.wage[t-1] * 10) / 10
+      }
+      else{
+        this.wage[t] = this.wage[t-1] 
+      }
     }
-    else{
-      this.wage[t] = this.wage[t-1] 
-    }
+
+    
+
+    // if(frameCount > 50) {
+    //   dzni =zdj
+    // }
 
 
   }
 
   this.productionFinancing = function(){
     var t = this.age
-
+    this.loans[t] = 0
     this.wageBill[t] = sumProp(this.employees,"wage") - this.delta_employment * this.wage[t]
-   
+    
     if(this.money < this.wageBill[t]){
       // console.error(this.id + " tries to borrow")
       this.BFR =  ceilie( this.wageBill[t] - this.money )
-      this.borrow(this.BFR)
-      this.loans[t] = this.BFR
+      this.borrow(this.BFR, "ST")
+      // this.loans[t] = this.BFR
     } 
-    else{
-      this.loans[t] = 0
-    }
+    // else{
+    //   this.loans[t] = 0
+    // }
     // console.warn("BFR : ", this.BFR)
     // console.warn("Loans : ", this.Loans)
   }
+
+  this.invest = function() {
+    this.effectiveInvest[t] = 0
+  
+    let prevFood = this.stock.food
+
+    if(this.investment[t] > 0) {
+  
+      let demand =  this.investment[t] * this.machine_value
+
+      if(demand > sumProp(localMarket.products.food.Offers, "availableQ") - this.stock.food) {
+        this.effectiveInvest[t] = 0
+        return false
+      }
+
+      let estimated_cost = demand * localMarket.products.food.worstprice
+
+      let prevmoney = this.money
+
+      this.financing_need = this.money - estimated_cost
+      // console.warn("previous money :" + this.money + " stock : " + this.stock.food)
+      // console.warn(this)
+      // console.log(this.investment[t], demand, estimated_cost, this.money, this.financing_need)
+      
+      if(this.financing_need < 0){
+        if(this.equity_ratio[t-1] > (1 - this.target_debt_ratio) ) {
+          this.borrow(-this.financing_need * 1.2, "LT")
+          // this.loans[t] += -this.financing_need * 1.2
+          let loan = -this.financing_need * 1.2
+        }
+        else{
+          this.effectiveInvest[t] = 0;
+          return false
+        }
+      }
+
+      this.effectiveInvest[t] = 0
+      for(var i in localMarket.products.food.Offers) {
+        var offer = localMarket.products.food.Offers[i]
+
+        if(offer.availableQ == 0 || offer.emetter.id == this.id){ continue }
+
+        let finalQ = 0
+        var quantity = Math.min(demand, offer.availableQ)
+ 
+
+        if(demand>0) {
+          finalQ = offer.buy(this, quantity)
+        }
+
+        demand -= finalQ
+        this.effectiveInvest[t] += finalQ * offer.price
+
+        if(demand <= 0 ){
+          break
+        }
+      }
+
+      if(demand > 0){
+        console.warn("Not enough supply to invest !!", demand, this)
+        cniei = nzdui
+      }
+      else {
+
+        if(Math.round(this.stock.food - prevFood) < Math.round(this.investment[t] * 100)) {
+          console.log(this.stock.food,  prevFood, this.stock.food - prevFood,this.investment[t] * 100)
+          dzdn = dzjin
+        }
+
+          this.createMachine(this.investment[t])
+      }
+
+      if(this.effectiveInvest[t] == 0 && this.investment[t] > 0) {
+        console.log(this.effectiveInvest[t],this.investment[t])
+        dzdi =dzion
+      }
+
+
+      if(this.money > prevmoney + loan - this.effectiveInvest[t] + 0.001) {
+        adzd = zd
+      }
+      // console.log(estimated_cost - this.effectiveInvest[t])
+      // if(this.effectiveInvest[t] < estimated_cost && this.financing_need < 0) {
+      //   this.gains_on_financing = min(-this.financing_need, estimated_cost - this.effectiveInvest[t])
+      //   console.log(this.gains_on_financing)
+      //   azdazd = dazd
+      // }
+      // else{
+      //   this.gains_on_financing = 0
+      // }
+
+    }
+    // else{
+    //   this.gains_on_financing = 0
+    // }
+
+
+  }
+
 
   this.hirePolicy = function() {
     var t = this.age
@@ -317,28 +527,6 @@ function Firm (x, y, id, prop, brain) {
 
   }
 
-  this.production = function() {
-    var t = this.age
-
-    this.Production[t] = 0;
-    
-    for(var i = 0; i < this.employees.length; i++) {
-      var contract = this.employees[i]
-      var worker = contract.worker
-      if(frameCount - contract.date <= contract.duration) {
-        if(worker.exhaust == 1 && this.Machines[i].used == 1) {
-          this.stock[this.good] += this.Machines[i].productivity
-          worker.money += contract.wage
-          this.money -= contract.wage
-          worker.exhaust -= 1
-          this.Machines[i].used = 0
-          this.Production[t] += this.Machines[i].productivity
-        }
-      }
-    }
-    this.capacity_utilization[t] = this.employees.length / this.Machines.length
-  }
-
   this.production2 = function() {
     var t = this.age
 
@@ -354,6 +542,7 @@ function Firm (x, y, id, prop, brain) {
           worker.exhaust -= 1
           worker.money += contract.wage
           this.money -= contract.wage
+          // this.Machines[i].deteriorate();
           if(this.Machines[i].process >= this.production_duration) {
             this.stock[this.good] += this.Machines[i].productivity * this.production_duration
             this.Production[t] += this.Machines[i].productivity * this.production_duration
@@ -362,89 +551,232 @@ function Firm (x, y, id, prop, brain) {
         }
       }
     }
+
+    // MACHINE DETERIORATION (could/should be only on usage)
+    for(var i = 0; i < this.Machines.length; i++){
+        this.Machines[i].deteriorate();  
+    }
     this.capacity_utilization[t] = this.employees.length / this.Machines.length
+    if(this.Machines.length == 0) {this.capacity_utilization[t] = 1}
+    this.smooth_capacity_utilization[t] = smoothen(this.capacity_utilization, this.capa_util_smoothing)
+  }
+
+  this.investment_choice = function() {
+// if(this.smooth_capacity_utilization[t] > this.capacity_utilization_target && this.age % this.production_adjust_delay == 0 && frameCount > 1 && this.Machines.length < this.max_machines){
+    if(this.smooth_capacity_utilization[t] > this.capacity_utilization_target  && this.age % this.production_adjust_delay == 0 && frameCount > 1 && this.Machines.length < this.max_machines){
+      
+      let investment = Math.max(1, Math.round(this.employees.length * this.production_flexibility))
+      let estimated_cost = investment * this.machine_value * localMarket.products.food.mediumPrice
+      let financing_need =  Math.max(estimated_cost - this.money,0)
+
+      let estimated_debt_ratio = (this.debt[t-1] + financing_need + this.loans[t]) / (this.assets[t-1] + estimated_cost)
+
+      // console.log(this, investment, estimated_cost, financing_need, estimated_debt_ratio)
+ 
+      if(estimated_debt_ratio < this.target_debt_ratio){
+        this.investment[t] = investment
+      }
+      else{
+        this.investment[t] = 0
+      }
+      // console.log(this, investment, estimated_cost, financing_need, estimated_debt_ratio, this.target_debt_ratio, this.investment[t])
+      // zdi =zd 
+      if(this.investment[t] != 0) {
+        // console.log(this, adjust, Math.round(adjust), this.investment[t])
+      }
+    }
+
   }
 
 
   this.priceCalc = function() {
     var t = this.age
-      // This unsold ratio is calculated AFTER production (not the same as above)
-      var stock_ratio_after_prod = this.stock[this.good] / this.production_capacity
-      var adjust;
+      if(this.target_employment[t-1] > 0) {
+        // This unsold ratio is calculated AFTER production (not the same as above)
+        var stock_ratio_after_prod = this.stock[this.good] / this.production_capacity
+        var adjust;
 
-      this.stock_ratio_after_prod[t] = stock_ratio_after_prod
-      // Adjust calculation
-      if(stock_ratio_after_prod <= 2) {
-        if(this.capacity_utilization[t] == 1) {
-          adjust = this.m_price_flexibility 
+        this.stock_ratio_after_prod[t] = stock_ratio_after_prod
+        // Adjust calculation
+        if(stock_ratio_after_prod <= 2) {
+          if(this.capacity_utilization[t] == 1) {
+            adjust = this.m_price_flexibility 
+          }
+          else {
+            adjust = this.price_flexibility
+          }
+        }
+        else if (stock_ratio_after_prod > 2) {
+         if(this.capacity_utilization[t] == 0) {
+            adjust = -this.m_price_flexibility 
+          }
+          else {
+            adjust = -this.price_flexibility
+          }
         }
         else {
-          adjust = this.price_flexibility
+          adjust = 0
         }
-      }
-      else if (stock_ratio_after_prod > 2) {
-       if(this.capacity_utilization[t] == 0) {
-          adjust = -this.m_price_flexibility 
-        }
-        else {
-          adjust = -this.price_flexibility
-        }
-      }
-      else {
-        adjust = 0
-      }
 
-      // New price calculation
-      // if(adjust > 0 && this.delta_employment == 0) {
-      //   adjust = adjust * 2 // the firm is already at full employment
-      // }
-
-      // if(adjust < 0 && this.target_employment == 0) {
-      //   adjust = adjust * 2 // the firm is already at 0 employment
-      // }
-
-      this.price[t] = (1 + adjust) * this.price[t-1]
+      this.price[t] = Math.round( (1 + adjust) * this.price[t-1] * 100 ) / 100
+    }
+    else {
+      this.price[t] = this.price[t-1]
+    }
   }
 
   this.sell = function() {
     this.stock_before_sell = this.stock[this.good]
     if(this.stock[this.good] > 0) {
-      localMarket.addOffer(this, this.good, this.price[t], this.stock[this.good])
+      if(this.stock[this.good] < this.commercial_capacity) {
+        localMarket.addOffer(this, this.good, this.price[t], this.stock[this.good])
+        this.Offer[t] = this.stock[this.good]
+      }
+      else {
+        localMarket.addOffer(this, this.good, this.price[t], this.commercial_capacity)
+        this.Offer[t] = this.commercial_capacity
+      }
+    }
+    else{
+      this.Offer[t] = 0
     }
   }
   
   this.resultCalc = function() {
     var t = this.age
 
-    this.margin[t] = this.price[t] - this.wage[t] / this.Machines[0].productivity
+    //  / ---- Exploitation Result ----- /
 
-    this.sales[t] = (this.stock_before_sell - this.stock[this.good]) * this.price[t]
     var effectiveWageBill = sumProp(this.employees, "wage") // Effective wage Bill 
-    this.delta_wageBill = this.wageBill[t] - effectiveWageBill
-    this.income[t] = this.sales[t] - effectiveWageBill - this.interest_charge[t]
 
-    this.result_to_affect = this.ownFunds[t-1] + this.income[t]  
-    // console.warn(" result to affect : ", this.result_to_affect, this.income, this.ownFunds[t] )
-    
-    if(this.result_to_affect > 0) {
-      // Pay dividends
-      this.ownFunds[t] = this.target_reserves * this.result_to_affect
-      this.dividends[t+1] = this.result_to_affect -  this.ownFunds[t]
+    this.unitCost[t] = effectiveWageBill / this.Production[t]
+    if(this.employees.length == 0){this.unitCost[t] = this.unitCost[t-1]}
+
+
+    if(this.Machines.length > 0 ){
+      this.margin[t] = this.price[t] - this.wage[t] / this.Machines[0].productivity
     }
     else{
-      // No dividends
-      this.dividends[t+1] = 0
-      this.ownFunds[t] = this.result_to_affect
-
+      this.margin[t] = 0
     }
 
-    this.debt[t] = sumProp(this.Loans, "principal")
+    this.sales[t] = (this.stock_before_sell - this.stock[this.good]) * this.price[t]
+    if(this.sales[t]<-1) {rden = enijun}
 
-    this.cash[t] = this.cash[t-1]  + this.loans[t] + this.income[t] - this.dividends[t] - ( this.debt_charge[t] - this.interest_charge[t] ) + this.deltawageBill
+    this.unsold_prod[t] = this.Production[t] - (this.stock_before_sell - this.stock[this.good])
+
+    if(this.unsold_prod[t] >= 0) {
+      this.stocks_value[t] = this.stocks_value[t-1] + this.unsold_prod[t] * this.unitCost[t]
+    }
+    else{
+      this.stocks_value[t] = this.stocks_value[t-1] + this.unsold_prod[t] * (this.stocks_value[t-1] / this.unsold_stock[t-1])
+    }
+    if(this.stock.food == 0) {this.stocks_value[t] = 0}
+   
+    if(!(this.stocks_value[t] >= 0))  { 
+      sznuszin
+    }
+    this.delta_wageBill = this.wageBill[t] - effectiveWageBill
+
+
+    this.pretax_income[t] = this.sales[t] - effectiveWageBill - this.interest_charge[t]
+    this.profit_tax[t+1] = Math.max(this.pretax_income[t] * state.profit_tax, 0)
+    this.income[t] =  this.pretax_income[t] - this.profit_tax[t+1]
+    //this.annual_income[t] = smoothen(this.income,timePeriod)
+
+    if(frameCount%timePeriod == 0){
+        this.annual_income[t] = annualAggregate(this.income)
+        this.annual_debt_charge[t] = annualAggregate(this.debt_charge)
+        this.annual_interest_charge[t] = annualAggregate(this.interest_charge)
+    }
+    else{
+        this.annual_income[t] = this.annual_income[t-1]
+        this.annual_debt_charge[t] = this.annual_debt_charge[t-1]
+        this.annual_interest_charge[t] = this.annual_interest_charge[t-1]
+    }
+
+    //  / ------ Payouts, Investment, Financing --------
+
+    this.cash[t] = this.cash[t-1]  + this.loans[t] + this.pretax_income[t] - this.dividends[t] - ( this.debt_charge[t] - this.interest_charge[t] ) + this.deltawageBill - this.effectiveInvest[t] - this.profit_tax[t] - this.miscellaneous[t]
+    this.fixedCapital[t] = sumProp(this.Machines,"book_value")
+
+    this.debt[t] = sumProp(this.Loans, "principal")
+    this.assets[t] = this.cash[t] + this.stocks_value[t] + this.fixedCapital[t]
+
+    var target_equity = this.assets[t] * ( 1 - this.target_debt_ratio)
+
+    this.cash_flows[t] = this.cash[t-1] + this.income[t]  
+    // console.warn(" result to affect : ", this.result_to_affect, this.income, this.equity[t] )
+    // this.reserve_ratio[t] = this.equity[t-1] / this.debt[t]
+
+    this.equity[t] =  this.assets[t] - this.debt[t] //this.equity[t-1] - this.dividends[t] + this.income[t]
+
     this.Money[t] = this.money
+
+    // if(Math.abs(this.Money[t] - this.cash[t]) > 0.01 && frameCount > 2) { 
+    //   console.error("ACCOUNTING FAILURE", this.Money[t] - this.cash[t], this.investment[t], this.deltawageBill, this.debt_charge[t])
+    //   xzdz = FAILURE
+    // }
+
+    this.equity_ratio[t] =  this.equity[t] / this.assets[t]
+    this.debt_ratio[t] = this.debt[t] / this.assets[t]
+
+    if(this.equity_ratio[t] > 0.05) {
+      this.leverage[t] = this.debt[t] / this.equity[t]
+    }
+    else {
+      this.leverage[t] = 19
+    }
+
+    // -------- PAYOUTS -----------
+    if(this.income[t] > 0 && this.equity[t] > target_equity){
+      this.dividends[t+1] = min(this.income[t] * this.dividends_ratio, this.cash[t]) //min(( this.equity[t] / target_equity ), this.max_dividend_rate, this.cash[t]) * this.income[t] 
+    }
+    else{
+      this.dividends[t+1] = 0 
+    }
+    this.retained_earnings[t+1] = this.income[t] - this.dividends[t+1]
+
+    // Performance and financial fragility
+    this.profit_rate[t] = this.annual_income[t] / this.fixedCapital[t]
+    if(this.fixedCapital[t] == 0) {
+      this.profit_rate[t] = 0
+    }
+
+
+    let cash_flows = this.income[t] + this.interest_charge[t]
+    if(cash_flows > this.debt_charge[t]) {
+      this.minsky_type = "hedge"
+    }
+    else {
+      if(cash_flows > this.debt_charge[t] - this.interest_charge[t]){
+        this.minsky_type = "speculative"    
+      }
+      else if(cash_flows < this.interest_charge[t]){
+        this.minsky_type = "ponzi"    
+      }
+    }
+
+
+    // if(this.cash_flows[t] > 0) {
+    //   if( this.reserve_ratio[t] > this.target_reserves){
+    //       // Pay dividends
+    //       this.retained_earnings[t] = this.retain_ratio * this.cash_flows[t]
+    //       this.dividends[t+1] = this.cash_flows[t] -  this.retained_earnings[t]
+    //   }
+    //   else{
+    //       this.retained_earnings[t] = this.cash_flows[t]
+    //       this.dividends[t+1] = 0
+    //   }
+    // }
+    // else{
+    //   // No dividends
+    //   this.dividends[t+1] = 0
+    //   this.retained_earnings[t] = 0
+    // }
     // This could (and has to) be made better (if hierarchy)
 
-    this.vacancies[t] = Math.round(this.target_employment[t]) - this.employees.length 
+    this.vacancies[t] = Math.round(this.target_employment[t]) - this.employees.length
 
     // FULL EMPLOYMENT MODE ACTIVATING
     if(this.employees.length >= Math.round(this.target_employment[t])) {
@@ -475,28 +807,29 @@ function Firm (x, y, id, prop, brain) {
     this.delta_employmentArr[t] = this.delta_employment
     this.final_wageBill[t] = effectiveWageBill
     this.internal_financing[t] = (this.wageBill[t] - this.BFR)  / effectiveWageBill
+    this.nbr_machines[t] = this.Machines.length
+    this.target_debt_ratio_arr[t] = this.target_debt_ratio
     // this.doubtfulDebt[t] = sumProp(this.Loans.filter((loan) => loan.quality == "doubtful" && loan.principal > 0  ), "principal")
 
-    if(this.ownFunds[t] > 10 ) {
-      this.leverage[t] = this.debt[t] / this.ownFunds[t]
-    }
-    else {
-      this.leverage[t] = 0
-    }
-
+    this.miscellaneous[t+1] = 0
    }
 
+  this.profitTax = function() {
+    var t = this.age
+    this.payTax(this.profit_tax[t])
+  }
 
   this.payDividends = function() {
       var t = this.age
 
       if(this.dividends[t] > 0) {
         // console.warn("tries to pay dividends")
-        this.totalShares = sumProp(this.Shares, "amount")
+        this.totalShares = this.Shares.length
         // console.warn("total shares " + this.totalShares )
         // console.warn("total dividend " + amount )
 
-        var dividend_per_share = this.dividends[t] / this.totalShares 
+        var dividend_per_share = this.dividends[t] / this.totalShares
+
         // console.warn("tdividend per share " + dividend_per_share  )
         for(var i in this.Shares) {
           this.Shares[i].payDividend(dividend_per_share)
@@ -505,53 +838,74 @@ function Firm (x, y, id, prop, brain) {
         }
       }
       else if( this.dividends[t] < 0) {
-        console.error("Firm pays negative dividends !!", this)
       }
   }
 
 
   this.fitnessCalc = function() {
-    this.brain.score = this.income.reduce((accumulator, currentValue) => accumulator + currentValue)
+    //var lastIncomes = this.income.slice(-timePeriod)
+    this.fitness = this.annual_income[t] //this.profit_rate[t] //this.annual_income[t] // lastIncomes.reduce((accumulator, currentValue) => accumulator + currentValue)
+    this.nominal_fitness[t] = this.fitness
+
+    // if(frameCount > 12) {dznio = iznod}
+  }
+
+  this.evolve = function() {
+    let draw = Math.random(1)
+    if(draw < 0.5) {
+      var model = random(FirmsPop.matingpool)
+      this.target_debt_ratio =  model.target_debt_ratio * (1.05 - Math.random() * 0.1 )
+
+    }
+    if(draw > 0.5) {
+      this.target_debt_ratio = Math.random() //Math.max(Math.min( this.target_debt_ratio * (1.5 - Math.random()), 1), 0)
+    }
+    if(draw > 1) {
+       this.target_debt_ratio = Math.random()
+    }
+    // if(draw > 0.7) {
+    //   this.target_debt_ratio =  Math.max(Math.min( this.target_debt_ratio * (1.5 - Math.random()
+    // }
   }
 
 
+  this.evolve = function() {
+    let draw = Math.random(1)
+    if(draw < 0.5) {
+      var model = random(FirmsPop.matingpool)
+      this.target_debt_ratio =  model.target_debt_ratio + (0.05 - Math.random() * 0.1 )
 
+    }
+    if(draw > 0.5) {
+      this.target_debt_ratio = Math.max(Math.min(this.target_debt_ratio + (0.5 - Math.random() * 1), 1), 0) //Math.random() //
+    }
+    if(draw > 1) {
+       this.target_debt_ratio = Math.random()
+    }
+    // if(draw > 0.7) {
+    //   this.target_debt_ratio =  Math.max(Math.min( this.target_debt_ratio * (1.5 - Math.random()
+    // }
+  }
 
-
-
-
-
-
-
-
+  this.copy = function(){
+    var model = random(FirmsPop.matingpool)
+    this.target_debt_ratio = model.target_debt_ratio * (1.05 - Math.random() * 0.1 )
+  }
 
   this.dismiss = function(n) {
-    console.log(this.employees.length, n)
+
     for(var i = 0; i < n; i++){
-      console.error("Dismiss employee", this)
       var contract = this.employees[this.employees.length-1]
         contract.worker.employed = false;
         contract.worker.contract = 0;
         contract.worker.employer = 0;
         contract.worker.lastEmployer = this.id;
+        contract.worker.lastWage = contract.wage  
         this.employees.splice(-1,1)
-      console.error("Dismiss employee", this.employees.length)
     }
   }
 
 
-
-  this.demandCalc = function() {
-    if(this.Processing)
-    for(var p in this.ProductionGoal) {
-      var product = this.ProductionGoal[p].product
-      var q = this.ProductionGoal[p].q
-      //console.log(product, q, ProdMatrix[product])
-      var needs = arrayMult(ProdMatrix[product], q)
-      //console.log(product, q, needs)
-      this.Demand = arraySum(this.Demand, needs)
-    }
-  }
 
   this.buy = function () {
     for(var i in this.Demand){
@@ -584,53 +938,6 @@ function Firm (x, y, id, prop, brain) {
   }
 
 
-  this.buildResultAccount = function() {
-    this.resultAccount = {}
-    
-    this.resultAccount.receipts = {
-      sales: this.MonthlySales,
-      financialIncome: 0,
-
-      total: this.MonthlySales + 0
-    }
-
-    this.resultAccount.expenses = {
-      wages: this.LabourCost,
-      debtCharge: 0 ,
-      rawCost: this.MonthlySpendings,
-      amortization: 0,
-
-      total: this.LabourCost + this.MonthlySpendings
-    }
-
-    this.resultAccount.netRes = this.resultAccount.receipts.total - this.resultAccount.expenses.total
-
-    }
-
-  
-  this.buildBalanceSheet = function () {
-    var balanceSheet = {}
-
-    balanceSheet.Assets = {
-      fixedCapital: this.fixedCapital,
-      // stocks: this.assetsValue,
-      cash:  this.cash,
-      // total: this.fixedCapital + this.assetsValue + this.money
-
-    }
-
-    balanceSheet.Liabilities = {
-      ownFunds: this.ownFunds,
-      debt: this.debt,
-      // result: this.MonthlyNetResult,
-      // total:this.ownFunds + this.debt + this.MonthlyNetResult
-
-    }
-
-    this.balanceSheet = balanceSheet
-    this.balanceSheetArr.push(balanceSheet)
-  }
-
 
   // ---- Stocks & Shareholders --------------
 
@@ -645,88 +952,6 @@ function Firm (x, y, id, prop, brain) {
 }
 
 
-/*
-
-
-function firm (x, y, id, pDNA) {
-  agent.call(this,x, y, id, pDNA)
- 
-  this.type = 'firm';
-  this.clor = [100,100,100]
-
-  this.employees = []
-  this.wage = 100
-  this.extractionRate = 0.1
-  this.price = 5
-  this.unitCost;
-  this.profitRate = 1/5;
-
-  this.monthlyProd = 0 
-  this.MonthlyOutputs = []
-
-
-  this.priceAdjuster = function() {
-   if(this.raw > 3) { this.price = this.price * 0.9}
-   else {this.price = this.price * 1.1 }
-  }
-
-  this.sell = function(task) {
-    // Remove Unmet Orders
-    for(var u=0; u < task.orders.length; u++) {
-      var order = task.orders[u] 
-      if(order.state == "unmet"){
-        req = foodMarket.cancelOrder(order.id, order.emetter)
-
-      }
-    }
-
-    // Makes new Order
-    newOrder = foodMarket.makeOrder("sell", this.price, task.targetQ, this)
-    task.orders.push(newOrder)
-    this.Orders.push(newOrder)
-  }
-
-  this.priceCalc = function() {
-    this.unitCost = 1/this.extractionRate * this.wage / timePeriod
-    this.price = this.unitCost * (1 + this.profitRate)
-  }
-
-  this.priceAdjuster = function() {
-    if(this.raw > 100) { this.price = this.price * 0.9}
-    else {this.price = this.price * 1.1 }
-  }
-
-  this.payWages = function() {
-    for(u=0; u < this.employees.length; u++) {
-      this.money -= this.wage 
-      this.employees[u].money += this.wage 
-      this.employees[u].income = this.wage 
-    }
-  }
-
-  this.operate = function(){
-    for(var u=0; u < this.Tasks.length; u++){
-
-        // Remove Completed task
-        if(this.Tasks[u].completion == 0) {
-          this.Tasks.splice(u,1)
-        }
-
-        // Try again to complete the task
-        else {
-          this.sell(this.Tasks[u])
-        }
-
-    }
-  }
-
-  this.resultCalc = function() {
-    this.MonthlyOutputs.push(this.monthlyProd)
-    this.monthlyProd = 0
-  }
-  
-}
-*/
 function arraySum(array1, array2) {
   var output = []
   for(var i = 0; i < array1.length; i++){
@@ -789,105 +1014,6 @@ function canProduce (agent, prop) {
   }
 }
 
-function Produce (producer, prop) {
-  var Matrix = ProdMatrix[prop]
-  var Matrik = {
-    rock: Matrix[0],
-    food: Matrix[1],
-    wood: Matrix[2],
-    iron: Matrix[3]
-  }
-  console.error(Matrik, producer.stock)
-  for(var p in Matrik) {
-    producer.stock[p] -= Matrik[p]
-  }
-  console.error(Matrik, producer.stock)
-}
-
-function buyFirm(x, y, id, pDNA) {
-  firm.call(this,x, y, id, pDNA)
-  this.LabourCost = 0
-  this.clor = [255, 131, 0]
-
-  this.act = function() {
-    for(var asset in this.stock) {
-
-      // -----  Expectations -------
-      this.expectedDemand = 3
-      this.totalPrice = this.expectedDemand * foodMarket.Markets[asset].price
-      var d = this.money - this.totalPrice + 10
-      if(d < 0 ) {
-        this.borrow(-d)
-      }
-      foodMarket.makeNow("buy", asset , this.expectedDemand, this)  
-      }
-  
-
-      // ----- Sales ----------
-      this.price = foodMarket.Markets[asset].price // * this.mark_up
-
-      // if(this.stock[asset] > 3) {
-      //   this.stock[asset] -= 3 // Effective demand
-      //   this.money += 3 * this.price
-      // }
-      // else{
-      //   this.money += this.stock[asset] * this.price
-      //   this.stock[asset] = 0
-      // }
-
-  
-    // if(this.money < 10) {
-    //   this.borrow(50)
-    // }
-  }
-}
-
-function sellFirm(x, y, id, pDNA) {
-  firm.call(this,x, y, id, pDNA)
-  this.LabourCost = 0
-  this.extractionCost = {
-    rock:3,
-    food:3,
-    wood:3,
-    iron:3,
-    house:3,
-    gold:3
-  }
-
-
-  this.productivity = {
-    rock:3,
-    food:3,
-    wood:3,
-    iron:3,
-    house:3,
-    gold:3
-  }
-
-  this.act = function() {
-  for(var asset in this.stock) {
-
-  // -------- Production --------
-  this.stock[asset] += this.productivity[asset]
-
-  // -----  Price Calculation -------
-  var price = this.extractionCost[asset] * this.mark_up
-
-  // ------- Selling -----------
-  // foodMarket.makeNow("sell", asset , this.stock[asset], this)  
-  var newOrder = foodMarket.makeOrder(asset , "sell", price, this.stock[asset], this) 
-
-  // ------- Paying Wages and Raw Material -------
-  // this.money -= this.extractionCost[asset] * this.productivity[asset]
-  this.LabourCost += this.extractionCost[asset] * this.productivity[asset]
-  }
-  // if(this.money < 10) {
-  //   this.borrow(100)
-  // }
-
-  }
-}
-
 
 function resultAccount(firm) {
   // Receipts
@@ -917,64 +1043,49 @@ function balanceSheet() {
   this.totalAssets = this.fixedCapital + this.stocks + this.cash
 
   // Liabilities
-  this.ownFunds = 100
+  this.equity = 100
   this.debt = 0
   this.result = 0
 
 
-  this.totalLiabilities = this.ownFunds + this.debt + this.result 
+  this.totalLiabilities = this.equity + this.debt + this.result 
   
 }
 
- this.resultCalc = function() {
-    this.MonthlyOutputs.push(this.monthlyProd)
-    this.monthlyProd = 0
-
-    this.MonthlySales = 0 
-    for(var u = 0; u < this.sellOps.length; u++) {
-      if(this.sellOps[u].time > frameCount - 10) {
-        this.MonthlySales += this.sellOps[u].price * this.sellOps[u].q
-      }
-    }
-
-    this.MonthlySpendings = 0 
-    for(var u = 0; u < this.buyOps.length; u++) {
-      if(this.buyOps[u].time > frameCount - 10) {
-        this.MonthlySpendings += this.buyOps[u].price * this.buyOps[u].q
-      }
-    }
-
-    this.MonthlyLabourCost = this.employees.length * this.wage 
-    this.MonthlyNetResult = this.MonthlySales - this.MonthlyLabourCost - this.MonthlySpendings //- this.MonthlyDebtCharge
-    //console.warn(this.MonthlySales, this.MonthlyLabourCost, this.MonthlySpendings, this.MonthlyDebtCharge, this.MonthlyNetResult)
-    this.MonthlyNetResults.push(this.MonthlyNetResult)
-
-    this.addedValue = this.MonthlySales - this.MonthlySpendings
-
-    this.MonthlyDebtCharge = 0
-    this.Actifs = [this.money]
-
-    this.assetsValue = []
-    for(var prop in this.stock) {
-      this.assetsValue.push(this.stock[prop] * localMarket.products[prop].bestprice);
-      console.error(this.stock[prop], localMarket.products[prop].bestprice)
-    }
-    console.error(this.assetsValue)
-    this.assetsValue = this.assetsValue.reduce((accumulator, currentValue) => accumulator + currentValue)
 
 
-    this.Passifs =  [this.debt, this.MonthlyNetResult]
-    this.totalPassif = this.Passifs.reduce((accumulator, currentValue) => accumulator + currentValue)
-    this.totalActif =  this.Actifs.reduce((accumulator, currentValue) => accumulator + currentValue)
-  }
-
-
-function Machine (prod) {
+function Machine (prod, val) {
   this.productivity = prod
   this.used = 1
   this.process = 0
+  this.creationDate = frameCount
+  this.init_value = val
+  this.book_value = val
+  this.lifetime = randomInt(60,120)
+  this.deterioration = this.lifetime
+
+
+  this.deteriorate = function() {
+    this.deterioration--
+    this.book_value = this.init_value * (this.deterioration / this.lifetime)
+  }
 }
 
 function ceilie(x) {
   return Math.ceil(x * 100) / 100
+}
+
+function smoothen(arr, n) {
+    let delay = Math.min(frameCount, n)
+    var lastValues = arr.slice(-delay)
+    return mean2(lastValues)
+}
+
+function annualAggregate(arr) {
+  let annualValues = arr.slice(-timePeriod)
+  let agg = 0
+  for(var i = 0; i < annualValues.length; i++) {
+      agg += annualValues[i]
+  }
+  return agg
 }

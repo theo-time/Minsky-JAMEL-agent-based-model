@@ -6,14 +6,18 @@ function Worker(x, y, id, pDNA) {
   this.clor = [250,50,50]
 
   this.life = 100;
+  this.age = 0
 
   this.contract = 0;
 
   this.Tables = {
     deposits:0,
     wage :0,
-    dividends :0,
-    income :0,
+    dividends:0,
+    preTax_income:0,
+    inc_tax:0,
+    allocations:0,
+    income:0,
     annual_income:0,
     targetSaving:0,
     consumption:0,
@@ -23,29 +27,41 @@ function Worker(x, y, id, pDNA) {
     cash:0,
     accepted_wage:0,
     unemployment_time:0,
+    risky_ratio:0,
+    target_risky_ratio_arr:0,
+    demand_time:0,
   }
 
   // | --  Assets -- |
 
-  this.Shares = {
+  this.Shares = []
 
-  }
 
   // | -- PARAMETERS -- |
 
-  this.contract_length = randomInt(6,37);
-  this.nbr_consult_offers = 4
-  this.accepted_wage_flexibility = 0.1;
-  this.accepted_wage_adjust_delay = randomInt(6,12);
-  this.savePropensity = 0.05
+  this.contract_length = randomInt(12,37);
+  this.nbr_consult_offers = 3
+  this.accepted_wage_flexibility = 0.01;
+  this.accepted_wage_adjust_delay =  randomInt(2,5);
+  this.targetSaving = 0.2
+  this.savePropensity = 0.2 // 0.05
   this.savePropensity_adjust_delay = randomInt(4,7);
+  this.max_savePropensity = 0.8
   this.foodNeed = 1
+  this.target_risky_ratio = 0.1
+  this.max_target_risky_ratio = 0.5
+  this.PE_norm = randomInt(5,10)
 
   // | -- STATE VARIABLES -- |
 
   this.dividends = [0];
   this.income = [0];
+  this.preTax_income = [0];
+  this.inc_tax = [0]
+  this.allocations = [0];
   this.deposits = [0];
+  this.financial_wealth = [0];
+  this.wealth = [0];
   this.saving = [0];
   this.wage = [0];
   this.accepted_wage = [1]; 
@@ -54,19 +70,27 @@ function Worker(x, y, id, pDNA) {
   this.exhaust = 0; 
   this.consumption = [0]
   this.annual_income = [0]
+  this.real_wealth = [0]
+  this.real_income = [0]
   // this.revendication = 10
   this.lastEmployer
+  this.savePropensity_arr = [0]
+  this.offer_time = [0]
+  this.demand_time = [0]
 
   // auxilirary
-  this.effectiveConsumption = []
-  this.unmet_demand = []
-  this.cash = []
+  this.effectiveConsumption = [0]
+  this.unmet_demand = [0]
+  this.cash = [0]
   this.targetSaving = [0]
   this.Saving = []
+  this.risky_ratio = [0]
+  this.target_risky_ratio_arr = [0]
+
 
   this.depositAccount = function() {
     this.deposits[frameCount] = this.money
-    console.log("compute")
+    this.allocations[frameCount] = 0
   }
 
   this.acceptedWageAdjust = function() {
@@ -117,7 +141,7 @@ function Worker(x, y, id, pDNA) {
         
         if(lastEmployerOffer) {
           sample = samplie(Offers, this.nbr_consult_offers - 1)
-          sample.push(lastEmployerOffer)
+          // sample.push(lastEmployerOffer)
         }
         else{
           sample = samplie(Offers, this.nbr_consult_offers)
@@ -126,11 +150,9 @@ function Worker(x, y, id, pDNA) {
       }
       else{
         sample = samplie(Offers, this.nbr_consult_offers)
-        console.error("no last employer", sample, frameCount)
       }
       
       sample.sort(function(a, b){return b.wage - a.wage})
-      console.warn(sample, this.accepted_wage[t])
 
       if(0 < sample.length){
         for(var i = 0; i < sample.length; i++) {
@@ -173,6 +195,7 @@ function Worker(x, y, id, pDNA) {
     }
   }
 
+
   this.budget = function() {
     var t = frameCount
     // Wage calculation
@@ -188,8 +211,122 @@ function Worker(x, y, id, pDNA) {
     if(!this.dividends[t]) {
       this.dividends[t] = 0
     }
+
+
     
-    this.income[t] = this.wage[t] + this.dividends[t] 
+    // Income
+
+    this.preTax_income[t] = this.wage[t] + this.dividends[t] 
+    this.inc_tax[t] = state.flatTax(this.preTax_income[t])
+    this.payTax(this.inc_tax[t])
+    this.income[t] = this.preTax_income[t] - this.inc_tax[t] + this.allocations[t]
+
+
+    this.real_income[t] = this.annual_income[t-1] / Globals.averagePrice
+
+    if(this.real_income[t] < 50) {
+      this.savePropensity = 0
+      this.target_risky_ratio = 0
+    }
+    else {
+      this.savePropensity = Math.min(Map(this.real_income[t], 50, 1000, 0.1, this.max_savePropensity), this.max_savePropensity)
+      this.target_risky_ratio = Math.min(Map(this.real_income[t], 100, 1000, 0.1, this.max_target_risky_ratio), this.max_target_risky_ratio)
+    }
+
+
+    this.savePropensity_arr[t] = this.savePropensity
+    this.target_risky_ratio_arr[t] = this.target_risky_ratio
+
+
+    // Average annual income calculation
+
+    if(frameCount%timePeriod == 0 && frameCount != 0) {
+      var lastIncomes = this.income.slice(-this.savePropensity_adjust_delay)
+      var average_income = mean2(lastIncomes)
+
+      this.annual_income[t] = timePeriod * average_income
+    }
+    else{
+      this.annual_income[t] = this.annual_income[t-1]
+    }
+
+    // [ -- TARGET SAVING -- ]
+
+    if(frameCount%this.savePropensity_adjust_delay == 0 && frameCount != 0) {
+
+      this.targetSaving[t] = this.annual_income[t] * this.savePropensity
+
+    }
+    else if(frameCount == 0) {
+      this.annual_income[t] = timePeriod * this.income[t]
+      this.targetSaving[t] = this.annual_income[t] * this.savePropensity
+    }
+    else {
+      this.targetSaving[t] = this.targetSaving[t-1]
+    }
+
+    // Consumption determination
+    var delta_saving = this.targetSaving[t] - this.deposits[t] // this.wealth[t-1]
+
+    if(delta_saving > this.savePropensity * this.income[t] ) {
+      this.consumption[t] = (1 - this.savePropensity) * this.income[t]
+    }
+    else {
+      this.consumption[t] = this.income[t] - delta_saving * this.savePropensity// Can be désepargne
+    }
+
+
+    // this.consumption[t] = this.income[t] + this.cash[t-1]
+    // this.saving[t] = 0
+
+    for(var i = 0; i < this.Shares.length; i++) {
+      if(this.Shares[i].owner != this) {
+        console.log(this)
+        eizo = zenoin
+      }
+    }
+  }
+
+
+  this.budget_old = function() {
+    var t = frameCount
+    // Wage calculation
+    if(this.employed) {
+      // console.warn( "NEW WAGE  :: " + this.contract.wage)
+      this.wage[t] = this.contract.wage
+    }
+    else {
+      this.wage[t] = 0
+    }
+
+    // If no dividends in t, then dividends are 0
+    if(!this.dividends[t]) {
+      this.dividends[t] = 0
+    }
+
+
+    
+    // Income
+
+    this.preTax_income[t] = this.wage[t] + this.dividends[t] 
+    this.inc_tax[t] = state.flatTax(this.preTax_income[t])
+    this.payTax(this.inc_tax[t])
+    this.income[t] = this.preTax_income[t] - this.inc_tax[t] + this.allocations[t]
+
+
+    this.real_income[t] = this.income[t] / Globals.averagePrice
+
+    if(this.real_income[t] < 10) {
+      this.savePropensity = 0
+      this.target_risky_ratio = 0.1
+    }
+    else {
+      this.savePropensity = Math.min(Map(this.real_income[t], 10, 100, 0.1, this.max_savePropensity), this.max_savePropensity)
+      this.target_risky_ratio = Math.min(Map(this.real_income[t], 10, 100, 0.1, this.max_target_risky_ratio), this.max_target_risky_ratio)
+    }
+
+
+    this.savePropensity_arr[t] = this.savePropensity
 
     // [ -- TARGET SAVING -- ]
     if(frameCount%this.savePropensity_adjust_delay == 0 && frameCount != 0) {
@@ -212,7 +349,7 @@ function Worker(x, y, id, pDNA) {
     }
 
     // Consumption determination
-    var delta_saving = this.targetSaving[t] - this.deposits[t]
+    var delta_saving = this.targetSaving[t] - this.deposits[t] // this.wealth[t-1]
 
     if(delta_saving > this.savePropensity * this.income[t] ) {
       this.consumption[t] = (1 - this.savePropensity) * this.income[t]
@@ -221,18 +358,29 @@ function Worker(x, y, id, pDNA) {
       this.consumption[t] = this.income[t] - delta_saving // Can be désepargne
     }
 
-    // Savings 
-    this.saving[t] = this.income[t] - this.consumption[t]
-   
+
+    // this.consumption[t] = this.income[t] + this.cash[t-1]
+    // this.saving[t] = 0
+
+    for(var i = 0; i < this.Shares.length; i++) {
+      if(this.Shares[i].owner != this) {
+        console.log(this)
+        eizo = zenoin
+      }
+    }
   }
 
-  this.spend = function() {
 
+  this.spend = function() {
+    var t = frameCount 
     if(this.consumption[t] > 0) {
       var consumption =  this.consumption[t]
 
       for(var i in localMarket.products.food.Offers) {
         var offer = localMarket.products.food.Offers[i]
+
+        if(offer.availableQ == 0){ continue }
+
         var demand = Math.min(Math.floor(consumption / offer.price), offer.availableQ)
 
         if(demand>0) {
@@ -248,16 +396,18 @@ function Worker(x, y, id, pDNA) {
     }
     this.cash[t] = this.money
     this.effectiveConsumption[t] = this.income[t] - (this.cash[t] - this.cash[t-1])
-    this.unmet_demand[t] = this.consumption[t] - this.effectiveConsumption[t]
+    this.saving[t] = this.income[t] - this.effectiveConsumption[t]
 
+    this.unmet_demand[t] = this.consumption[t] - this.effectiveConsumption[t]
+    this.dividends[t+1] = 0 // Initialisation of dividends
     this.Saving[t] = this.cash[t]
   }
 
   this.spend2 = function() {
+    var t = frameCount
 
     if(this.consumption[t] > 0) {
       var consumption =  this.consumption[t] // / localMarket.products.food.bestprice
-      console.warn("Consumer " + id + " tries to spend " + consumption + "$ an own" + this.money +"$")
       var Offers =  localMarket.products.food.Offers.filter((element) => element.availableQ > 0)
       let sample = []
 
@@ -266,7 +416,6 @@ function Worker(x, y, id, pDNA) {
 
         let sampleResults  = cutSample(Offers, this.nbr_consult_offers)
         sample = sampleResults[1]
-        console.log(Offers, sample)
 
         if(i == 0 && this.lastSupplier){
           let lastSupplierOffer = Offers.filter((element) => element.emetter.id == this.lastSupplier )[0]
@@ -280,7 +429,7 @@ function Worker(x, y, id, pDNA) {
         let offer = sample[0]
         let demand = Math.min(Math.floor(consumption/offer.price), offer.availableQ)
         // if(demand * offer.price > this.money) { }
-        console.log(sample, offer, demand, this.money, this)
+
 
         offer.buy(this, demand)
         consumption -= demand * offer.price
@@ -297,6 +446,69 @@ function Worker(x, y, id, pDNA) {
     // if(this.effectiveConsumption[t] < 0 ) {  zadazoni = adzd}
     // if(this.unmet_demand[t] > 100 && frameCount > 10) {  zadazoni = adzd}
     this.Saving[t] = this.cash[t]
+  }
+
+  this.portfolioBehavior = function () {
+    var t = frameCount
+
+    // Wealth 
+    this.financial_wealth[t] = this.Shares.length * stockMarket.price
+    this.wealth[t] = this.money + this.financial_wealth[t]
+    this.real_wealth[t] = this.wealth[t] / Globals.averagePrice
+
+    this.risky_ratio[t] = this.financial_wealth[t] / this.wealth[t]
+
+    // if(Globals.price_earnings_ratio < this.PE_norm) {
+    //   this.target_risky_ratio = Math.min(this.target_risky_ratio * 1.4, 1)
+    // }
+    // else {
+    //   this.target_risky_ratio = this.target_risky_ratio * 0.6
+    // }
+
+    this.target_risky_ratio_arr[t] = this.target_risky_ratio
+
+    if(this.risky_ratio[t] < this.target_risky_ratio ) {
+
+      let delta = (this.target_risky_ratio - this.risky_ratio[t]) * this.wealth[t]
+      let demand = Math.round(delta/stockMarket.price)
+      let adjust = Map(this.demand_time[t-1], 0, 100, 0, 0.3)
+      let price = stockMarket.price * (1 + adjust)
+
+
+      if(demand > 0 && this.money > price * 1){
+
+          stockMarket.makeOrder("buy", price, 1, this)    
+
+      } 
+
+      this.demand_time[t] =  this.demand_time[t-1] + 1
+      this.offer_time[t] = 0
+
+    }
+    else {
+      let delta =  (this.risky_ratio[t] - this.target_risky_ratio) * this.wealth[t]
+      let offer = Math.round(delta/stockMarket.price)  
+      let adjust = Map(this.offer_time[t-1], 0, 100, 0, 0.3)
+      let price = stockMarket.price * (1 - adjust)
+
+      if(offer > 0 && this.Shares.length > 1){
+
+          stockMarket.makeOrder("sell", price, 1, this)
+           
+      }  
+
+      this.offer_time[t] =  this.offer_time[t-1] + 1
+      this.demand_time[t] = 0
+
+    }
+
+    // var draw = Math.random()
+    // if(draw > 0.5 && this.money > stockMarket.price) {
+    //   stockMarket.makeOrder("buy", 1, 1, this)
+    // }
+    // else if(this.Shares.length > 0) {
+    //   stockMarket.makeOrder("sell", 1, 1, this)
+    // }
   }
 
   this.test = function() {
@@ -326,89 +538,12 @@ function Worker(x, y, id, pDNA) {
       }
       else{
         sample = samplie(Offers, this.nbr_consult_offers)
-        console.error("no last employer", sample, frameCount)
       }
       return sample
   }
 
 
 
-  this.buildPlan = function() {
-    var plan = []
-    var goal;
-    // FIND A GOAL 
-    for(var g in Goals) {
-      if(Goals[g].isValid(this) && !goal) {
-        goal = Goals[g]; 
-      }
-      else{/*console.warn('goal ' + Goals[g] + " is not valid")*/}
-    }
-
-
-    if(goal) {
-     // console.warn("ready for finding actions",goal.dState)
-
-      // Find Actions 
-      firstAction = findAction(goal.dState)
-      plan.push(firstAction)
-     // console.log("1st Action", firstAction)
-     // console.log("Plan", plan)
-      while(plan[0].condition){
-       // console.log("Plan", plan[0])
-        var newAction = findAction(plan[0].condition)
-        plan.unshift(newAction)
-       // console.log("New Action", newAction)
-      }
-      this.Plans.push(plan)
-    }
-    
-  }
-
-  this.eat = function() {
-    this.food -= 5
-    this.life = 100
-  }
-
-  this.act = function(){
-    if(this.Plans.length == 0) {this.buildPlan();}
-    else{
-      for(var i in this.Plans){
-        console.log(this.Plans[i][0])
-        this.Plans[i][0].effect(this)
-        if(this.Plans[i][0].reached(this)) {
-          console.warn("Action " + this.Plans[i][0].id + " reached")
-          this.Plans[i].shift()
-          if(this.Plans[i].length == 0) {this.Plans.splice(i,1)}
-        }
-      }
-    }
-    this.compute();
-    this.buy("food",2);
-    this.revendicate();
-    this.hunger();
-  }
-
-  // At the end of the month, worker calculates his demand and Lifecost
-  this.compute = function() {
-    this.foodPrice = foodMarket.price
-    this.lifeCost = this.consumption * this.foodPrice
-    this.demand = this.consumption * 10 - this.food;
-  }
-
-  // Worker calculates what he can afford and buys it on the market
-  this.buy = function(prop, q) {
-    while (q * localMarket.products[prop].bestprice > this.money) {
-      var q  = q - 1
-    }
-    if(q > 0) {
-      //var req = foodMarket.buyNow(this, this.demand) deprecated
-      if(localMarket.products[prop].Offers.length > 0) {
-          var offer = localMarket.products[prop].Offers[0]
-          exchange(this, offer.emetter, offer.prop, offer.price, q)
-          console.log("buys " + q + " of " + prop)
-      }
-    }
-  }
 
   this.eatFood = function() {
 
@@ -431,14 +566,57 @@ function Worker(x, y, id, pDNA) {
     }
   }
 
-  // the Worker revendicates a wage which allows him to live
-  this.revendicate = function() {
-    if(this.foodPrice) {
-      this.revendication = this.lifeCost - this.income
-      if(this.revendication < 0 ) {this.revendication = 0}
-    }
-    //this.employer.augmAskers.push(this)
+  this.ageing = function() {
+    this.age++
   }
+
+  this.actualize = function() {
+    var toAct = [
+      "dividends", 
+      "income", 
+      "preTax_income", 
+      "inc_tax", 
+      "allocations", 
+      "deposits", 
+      "financial_wealth", 
+      "wealth", 
+      "saving", 
+      "wage", 
+      "accepted_wage",
+      "unemployment_time", 
+      "exhaust",  
+      "consumption",
+      "annual_income", 
+      "real_wealth",
+      "real_income", 
+      // this.revendication = 10
+
+      "savePropensity_arr", 
+      "offer_time" ,
+      "demand_time", 
+
+      // auxilirary
+      "effectiveConsumption", 
+      "unmet_demand", 
+      "cash", 
+      "targetSaving", 
+      "Saving", 
+      "risky_ratio", 
+      "target_risky_ratio_arr"
+    ]
+
+    for(var i in toAct){
+      console.log(this)
+      this[toAct[i]][frameCount] = this[toAct[i]][0]
+    }
+
+    // zszd = zddfz
+  }
+
+  if(frameCount > 1) {
+    this.actualize()
+  }
+
 }
 
 

@@ -209,14 +209,30 @@ function createTables(agent) {
 
 	for(var i in agent.Tables) {
 		Tables[i] = agent[i] 
-		for(var u = 0; u < Tables[i].length; u++){
-			Tables[i][u] = Math.round(Tables[i][u] * 100) / 100
-		}
+			for(var u = 0; u < Tables[i].length; u++){
+				Tables[i][u] = Math.round(Tables[i][u] * 100) / 100
+			}
 	}
 
 	agent.Tables = Tables
 	return Tables
 }
+
+function createBankTables(agent) {
+	var Tables = {}
+
+	for(var i in agent.Tables) {
+		Tables[i] = agent[i] 
+			for(var u = 0; u < Tables[i].length; u++){
+				Tables[i][u] = Tables[i][u] 
+			}
+	}
+
+	agent.Tables = Tables
+	return Tables
+}
+
+
 
 
 function agentTable(agent) {

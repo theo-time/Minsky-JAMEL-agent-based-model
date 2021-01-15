@@ -61,9 +61,20 @@ function userInterface() {
         VizElt.appendChild(col2)
 
         multigraph(["production", "Consumption_v"], "Commodities Market")
+        stackedAreas(["Consumption", "stateDemand", "InvestmentDemand"], "Aggregate Demand")
+        printGlobal("Investment")
+        printGlobal("investment_to_GDP")
+        printGlobal("Savings")
+        printGlobal("averageSavingProp")
+        printGlobal("Leverage")
+        printGlobal("average_target_debt_ratio")
+        multigraph(["target_employment", "nbr_machines","labourSupply"], "Target Employment and Capital")
+        printGlobal("public_debt_to_GDP")
+        printGlobal('dividends_to_profits')
+        printGlobal('retained_earnings')
         // printGlobal("GDP")
         // printGlobal("GDP_growth")
-        compositionGraph(["totalIncome","totalSavings"], "Income & Savings" )
+        compositionGraph(["totalIncome","Savings"], "Income & Savings" )
 
         // printGlobal("bankProfits")
         // printGlobal("firmsProfits")
@@ -72,7 +83,7 @@ function userInterface() {
 
         stackedAreas(["trustLoans","doubtLoans"], "Debt")
 
-        compositionGraph(["moneySupply","firmsDeposits", "workersDeposits", "bankReserves"], "Income & Savings" )
+        compositionGraph(["moneySupply","firmsDeposits", "workersDeposits", "bankReserves", "stateDeposits"], "Income & Savings" )
 
         stackedAreasNorm(["totalWages","totalDividends"],"Income Share" ,"norm")
         stackedAreasNorm(["bankDividends","firmsDividends"],"Dividends Repartition" ,"norm")
@@ -80,10 +91,12 @@ function userInterface() {
         printGlobal("averagePrice")
         // printGlobal("averagePrice_smoothed")
         printGlobal("averageWage")
+        printGlobal("yearly_wage")
         printGlobal("realWage")
-        printGlobal("accepted_wage")  
+        multigraph(["accepted_wage", "offered_wage"], "Labour Market")  
         printGlobal("moneySupply")     
         printGlobal("totalDebt")
+        stackedAreas(["privateDebt","publicDebt"], "Debt")
         printGlobal("moneyVelocity")
         printGlobal("totalLoans")
         printGlobal("internal_financing")
@@ -91,9 +104,11 @@ function userInterface() {
         printGlobal("monthly_number_transac")
         // printGlobal("debt_to_capital")
         printGlobal("totalSaving")  
+        printGlobal("totalStock")
         printGlobal("unsold_ratio")
         printGlobal("stock_after_prod")
         multigraph(["excess_firms", "ok_firms"], "Stocks (Price Calc)")
+        printGlobal("wageInflation")
         multigraph(["excess_firms_st", "ok_firms_st"], "Stocks (Prod Calc)")
 
         print(Globals.stock_arr["food"], col1, "food")
@@ -102,11 +117,15 @@ function userInterface() {
         multigraph(["vacancies", "unemployment"], "Work Market")
         printGlobal("inflation")
         printGlobal("inflation_MA")
+        printGlobal("profitRate")
         printGlobal("profitShare")
-        printGlobal("firstDecile")
-
-
-        // printGlobal("deadWorkers")
+        printGlobal("firstDecileInc")
+        printGlobal("firstDecileWealth")
+        printGlobal("stockMarketPrice")
+        printGlobal("stockMarketCap")
+        printGlobal("stockMarketCap_to_GDP")
+        printGlobal("price_earnings_ratio")
+        printGlobal("tobin_Q")
 
         // var capaUti = new trace(Time,Globals.arr.capacity_utilization,"lines")
         // var layout = {
@@ -121,10 +140,13 @@ function userInterface() {
         //     height: 500,
         // };
         // Plotly.newPlot('viz', [Phillips], layout);
-        phillipsCurve = newGraph(Globals.arr.employment_yearly, Globals.arr.inflation_MA,'Phillips Curve', "scatter", "text+markers+lines")
+        phillipsCurve = newGraph(Globals.arr.employment_yearly, Globals.arr.inflation,'Phillips Curve', "scatter", "text+markers+lines")
+        phillipsCurve = newGraph(Globals.arr.employment_yearly, Globals.arr.wageInflation,'Phillips Curve', "scatter", "text+markers+lines")
         newGraph(Time,Globals.arr.capacity_utilization, "Capacity utilisation", "lines")
         goodwinCycle = newGraph(Globals.arr.wageShare, Globals.arr.employmentRate, "Goodwin Cycles", "lines")
-
+        printGlobal("annualProfits")
+        printGlobal("financial_fragility")
+        financialCycle = newGraph(Globals.arr.output_capacity, Globals.arr.financial_fragility, "Financial Cycles", "lines")
         // for(var r in Globals.stock) {
         //   print(Globals.stock_arr[r], col2, r)
         //   print(Globals.price_arr[r], col3, r)
@@ -151,15 +173,32 @@ function userInterface() {
 
         break
 
+      case "State" : 
+        clearSVG()
+        createTables(state)
+        agentGraph(state)
+        break
+
       case "firms" : 
         clearSVG()
-        printFirms()
+        minskyPlot(Firms, "debt_ratio", "Production", "Debt ratio")
+        minskyPlot(Firms, "target_debt_ratio_arr", "Production", "Target Debt Ratio" )
+        // minskyPlot(Firms, "wage", "Production", "Wages")
+        // minskyPlot(Firms, "price", "Production", "Prices")
+        minskyPlot(Firms, "Production", "dividends", "Profit Rate")
+        minskyPlot(Firms, "Production", "annual_income", "Profit Rate")  
+        // minskyPlot(Firms, "target_debt_ratio_arr", "profit_rate", "Profit Rate")
 
         break
 
       case "workers" : 
         clearSVG()
-        displayAgents(Agents)
+        scatterPlot(Workers, "wealth", "income", "Wealth")
+        scatterPlot(Workers, "financial_wealth", "income", "Wealth")
+        scatterPlot(Workers, "wealth", "risky_ratio", "Wealth")
+        scatterPlot(Workers, "real_income", "savePropensity_arr" , "Wealth")
+        scatterPlot(Workers, "real_income", "target_risky_ratio_arr" , "Target Financial Ratio")
+        barChart(["1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th"], Globals.wealthQuantiles,"wealth")
 
         break
 
@@ -194,7 +233,7 @@ function userInterface() {
 
         case "bankCharts" : 
         clearSVG()
-        createTables(Bank)
+        createBankTables(Bank)
         agentGraph(Bank)
         break
 
@@ -202,8 +241,9 @@ function userInterface() {
         clearSVG()
         tradePanelElt.style.display = "none"
         paramElt.style.display = "none" 
-        createTables(Firms[0])
-        agentTable(Firms[0])
+        selected_firm = Firms.filter((e) => e.id == firmSelector.value)[0]
+        createTables(selected_firm)
+        agentTable(selected_firm)
         // printTables(Firms[0].balanceSheet.Assets)
         // printTables(Firms[0].balanceSheet.Liabilities)
         break
@@ -211,9 +251,7 @@ function userInterface() {
         case "firmCharts" :
         tradePanelElt.style.display = "none"
         paramElt.style.display = "none" 
-        clearSVG()
-        createTables(Firms[0])
-        agentGraph(Firms[0])
+        renderFirm();
 
         // printTables(Firms[0].balanceSheet.Assets)
         // printTables(Firms[0].balanceSheet.Liabilities)
@@ -221,4 +259,11 @@ function userInterface() {
 
     }
 
+}
+
+function renderFirm() {
+    clearSVG()
+    selected_firm = Firms.filter((e) => e.id == firmSelector.value)[0]
+    createTables(selected_firm)
+    agentGraph(selected_firm)
 }

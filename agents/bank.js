@@ -7,7 +7,7 @@ class bank {
     this.clor = [255, 225, 0]
     this.size = agentSize
 
-    this.Loans = []
+    this.Loans = {}
     this.oldLoans = []
     this.Accounts = []
 
@@ -20,6 +20,8 @@ class bank {
     }
 
     this.Tables = {
+      month_inflation:0,
+      base_interest:0,
       totalLoans:0,
       targetOwnFunds:0,
       Profits:0,
@@ -31,14 +33,20 @@ class bank {
 
   // | -- PARAMETERS -- |
 
-    this.credit_duration = 12
-    this.reserve_rate = 1/10
-    this.interest_rate = 0.05
-    this.m_interest_rate = 0.1
-    this.max_leverage = 100
+    this.credit_duration_ST = 12
+    this.credit_duration_LT = 80
+    this.reserve_rate = 0.1
+    this.target_inflation = 0.02 / 12
+    this.inflation_reaction = 2
+    this.risk_premium = 0.04
+
 
   // | -- STATE VARIABLES -- | 
-
+    this.interest_rate = 0.05
+    this.m_interest_rate = 0.1
+    this.base_interest = [0]
+    this.annual_inflation = [0]
+    this.month_inflation = [0]
     this.ownFunds = [0,0];
     this.dividends=  [0,0]; 
     this.Profits = [0] ; 
@@ -56,36 +64,66 @@ class bank {
     this.cash = [0]
     this.moneyDestruction= [0]
 
+    this.out_of_market = 0 
+    this.bankrupted = 0
+
+
     this.transfer = function(emetter, recipient) {
 
       // TO DO ....
 
     }
 
-    this.loanIssue = function(borrower, amount, quality) {
-      if(quality == "trustful"){
-        var interest = this.interest_rate
+    this.interestAdjust = function() {
+      if(frameCount > timePeriod + 1){
+        this.annual_inflation[t-1] = (Globals.arr.averagePrice[t-2] - Globals.arr.averagePrice[t - timePeriod - 2]) / Globals.arr.averagePrice[t - timePeriod - 2]
+        this.month_inflation [t-1] = this.annual_inflation[t-1] / 12
+        this.interest_rate = max(this.inflation_reaction * (this.month_inflation[t-1] - this.target_inflation), 0) 
+        this.m_interest_rate = this.interest_rate + this.risk_premium
+        this.base_interest[t] = this.interest_rate
+        // zd =z
       }
-      else if(quality == "doubtful" || quality == "badDebt"){
-        var interest = this.m_interest_rate
-      }
-      // console.error("New Loan Issue", borrower.leverage, this.maxLeverage)
-      // if(borrower.leverage < this.max_leverage) {
+    }
+
+    this.loanIssue = function(borrower, amount, quality, type) {
+        if(quality == "trustful"){
+          var interest = this.interest_rate
+        }
+        else if(quality == "doubtful" || quality == "badDebt"){
+          var interest = this.m_interest_rate
+        }
+
+        if(type == "ST"){
+          var delay = this.credit_duration_ST
+        }
+        else if(type == "LT"){
+          var delay = this.credit_duration_LT
+        }
+
+        if(borrower.id == "state"){
+          var interest = 0
+        }
+
+
+        if(!delay){zd=dznd}
+
+        borrower.loans[t] += amount
         borrower.money += amount 
-        var Loan = new loan(borrower, amount, interest, this.credit_duration, quality)
-        this.Loans.push(Loan)
+        var Loan = new loan(borrower, amount, interest, delay, quality)
+
+        if(!this.Loans[borrower.id]){this.Loans[borrower.id] = []}
+
+        this.Loans[borrower.id].push(Loan)
         borrower.Loans.push(Loan)
+
+        // Visualisation
         push()
           strokeWeight(amount/200*30)
           stroke(255,255,0)
           line(borrower.pos.x, borrower.pos.y, Bank.pos.x, Bank.pos.y)
         pop()
+
         return Loan
-      // }
-      // else{
-      //   console.warn("TOO MUCH LEVERAGE", borrower.leverage, this.maxLeverage)
-      //   return "fail"
-      // }
     }
 
 
@@ -101,6 +139,9 @@ class bank {
             this.oldLoans.push(this.Loans[i])
             this.Loans.splice(i,1)
           }
+          else{
+            // this.bankruptcy(this.Loans[i].borrower, this.Loans[i])
+          }
         }
       }
 
@@ -111,98 +152,118 @@ class bank {
 
     this.bankruptcies = 0  
     this.moneyDestruction = 0
+    this.profits = 0 
 
-      for(var i = 0; i < this.Loans.length; i++) {
+      for(var firm in this.Loans) {
 
-        // if(this.Loans[i].borrower.solvability == "bankrupt") {
-        //   this.Loans[i].principal = 0
-        //   this.oldLoans.push(this.Loans[i])
-        //   this.Loans.splice(i,1)
-        //   continue
-        // }
+        if(this.Loans[firm].length == 0) {continue}
 
-        if(frameCount - this.Loans[i].date > this.Loans[i].duration) {
-          // console.warn(" BANK RECOVER CREDIT", this.Loans[i])
-          var sum = ceilie( this.Loans[i].principal * ( 1 + this.Loans[i].interest))
-          var delta_money = this.Loans[i].borrower.money - sum
+        let interests = 0
+        let reimbursment = 0
+        let borrower = this.Loans[firm][0].borrower
 
-     //  --- CASE 1 : Direct Reimboursment  ---
+        // Calculation of payment obligations
+        for(var i = 0; i < this.Loans[firm].length; i++) {
 
-          if(delta_money >= 0) {
-            var reimburse = this.Loans[i].reimburse()
-
-            if(reimburse == true) {
-              this.oldLoans.push(this.Loans[i])
-              this.Loans.splice(i,1)
-              // console.warn("Fully reimbursed",reimburse)
+            // --- Remove reimbursed loan ---- 
+            if(this.Loans[firm][i].principal == 0) {
+              this.Loans[firm][i].principal = 0
+              this.oldLoans.push(this.Loans[firm][i])
+              this.Loans[firm].splice(i,1)
+              i--
+              continue
             }
-            else{
-              console.error('BIG PROBLEM')
-              dnjzdizn = 0
-            }
-          }
 
-          // Remboursment impossible 
-          else if(this.Loans[i].borrower.money >= 0) {
-
-            // Bank makes a new loan to pay the old one
-            if(this.Loans[i].quality == "trustful"){
-              // console.warn("Borrower can't reimburse", sum, this.Loans[i].borrower.money)
-              // console.warn(this.Loans[i].borrower.money, Bank.money, sumProp(this.Loans, "principal"))
-              // console.log(" OLD LOAN :", this.Loans[i])
-              var newLoan = this.loanIssue(this.Loans[i].borrower, ceilie(-delta_money + 1) , "doubtful")
-              this.Loans[i].borrower.loans[t] += newLoan.principal
-              // console.log(" NEW LOAN : " ,newLoan)
-              reimburse = this.Loans[i].reimburse()
-              // console.log(reimburse)
-              // console.warn(this.Loans[i].borrower.money, Bank.money,  sumProp(this.Loans, "principal"))
-              if(reimburse){
-                this.oldLoans.push(this.Loans[i])
-                this.Loans.splice(i,1)
-              }
-              else{
-                console.error('BIG PROBLEM')
-                dnjzdizn = 0
-              }
+            if(this.Loans[firm][i].type == "amortized" && this.Loans[firm][i].date != frameCount) {
+              interests += this.Loans[firm][i].interest * this.Loans[firm][i].principal
+              reimbursment += this.Loans[firm][i].init_sum / this.Loans[firm][i].duration
             }
-            // Bankruptcy of the firm
-            else{
-              // bankruptcy(this.Loans[i].borrower, this)
-              this.bankruptcies++
-              // console.log(this.Loans[i].borrower.money, this.Loans[i])
-              var newLoan = this.loanIssue(this.Loans[i].borrower, -delta_money + 1 , "doubtful")
-              this.Loans[i].borrower.loans[t] += newLoan.principal
-              // console.log(newLoan)
-              reimburse = this.Loans[i].reimburse()
-              // console.log(reimburse)
-              if(reimburse){
-                this.oldLoans.push(this.Loans[i])
-                this.Loans.splice(i,1)
-              }
-              else{
-                console.error('BIG PROBLEM')
-                dnjzdizn = 0
-              }
-            }
-            
-          }
-          else {
-            console.error("BORROWER HAS NEGATIVE MONEY", this.Loans[i].borrower.money)
-          }
 
-          // Remove Reimbursed Loans 
-          // for(var i = 0; i < this.Loans[i]; i++) {
-          //   if(this.Loans[i].principal == 0){
-          //     this.oldLoans.push(this.Loans[i])
-          //     this.Loans.splice(i,1)
-          //     i--
-          //     // console.warn("Fully reimbursed",reimburse)
-          //   }
-          // }
         }
+
+        let sum = reimbursment + interests
+        // console.log(sum, reimbursment, interests, borrower.money)
+
+        // Overdraft Loan if unable to repay
+        if(borrower.money < sum ) {
+            let delta_money = sum - borrower.money 
+            this.loanIssue(borrower, delta_money + 1, "doubtful", "ST")
+        }
+
+        // Then proceed to payments 
+        for(var i = 0; i < this.Loans[firm].length; i++) {
+            if(this.Loans[firm][i].type == "amortized" && this.Loans[firm][i].date < frameCount) {
+              reimbursment = this.Loans[firm][i].init_sum / this.Loans[firm][i].duration
+              this.Loans[firm][i].payInterest()
+              this.Loans[firm][i].reimburse(reimbursment)
+            }
+        }
+
       }
   
 
+    }
+
+
+    this.handleBankruptcies = function() {
+      for(var i = 0; i < Firms.length; i++){
+        // Insolvency Bankruptcy 
+        if(Firms[i].equity[t] < 0) {
+          // Firms[i].solvability = "bankrupt"
+
+          // Dismiss all employees
+          Firms[i].dismiss(Firms[i].employees.length)
+          
+          // Compute losses
+          let debt = sumProp(Firms[i].Loans, "principal")
+          let liquidity = Firms[i].money
+          let loss = debt - liquidity
+
+          // console.log(Firms[i], debt, liquidity, loss, Firms[i].stock.food, Firms[i].Machines, this.money, this.totalLoans[t-1])
+          
+          if(Bank.money < loss) {
+            console.error("the Economy has crashed")
+            // play = false
+          }
+
+
+          // Take liquidities and register losses
+          Firms[i].money -= liquidity
+          Firms[i].miscellaneous[t+1] += liquidity
+          this.money -= loss
+          this.profits -= loss
+          this.moneyDestruction += debt
+
+          // Cancel all Loans
+          this.Loans[Firms[i].id] = []
+          Firms[i].Loans = []
+
+          // Copy a successful firm
+          Firms[i].copy()
+
+         // zddz = zdzj
+          // Firms.splice(i,1)
+
+          // i--
+          this.bankruptcies++
+          this.bankrupted++
+        }
+
+        // No production bankruptcy 
+        if(Firms[i].Machines.length == 0) {
+
+          Firms[i].Machines.push(new Machine(Firms[i].machine_productivity, Firms[i].machine_value *  localMarket.products.food.mediumPrice))
+          // console.log(Firms[i].machine_value, localMarket.products.food.mediumPrice)
+          
+          Firms[i].target_employment[t] = 1
+          this.bankruptcies++
+          
+          // play = false
+          Firms[i].copy()
+          this.out_of_market++ 
+        }
+
+      }
     }
 
     this.balanceSheetCalc = function() {
@@ -210,14 +271,20 @@ class bank {
 
       this.trustLoans = 0
       this.doubtLoans = 0
-      for(var i = 0; i < this.Loans.length; i++) {
-        if(this.Loans[i].quality == "trustful"){
-          this.trustLoans += this.Loans[i].principal 
+
+      for(var firm in this.Loans){
+
+          for(var i = 0; i < this.Loans[firm].length; i++) {
+
+            if(this.Loans[firm][i].quality == "trustful"){
+              this.trustLoans += this.Loans[firm][i].principal 
+            }
+            else{
+              this.doubtLoans += this.Loans[firm][i].principal  
+            }
+
+          }
         }
-        else{
-          this.doubtLoans += this.Loans[i].principal  
-        }
-      }
     }
 
     this.resultCalc = function() {
@@ -291,79 +358,59 @@ class bank {
       this.balanceSheetArr.push(balanceSheet)
     }
 
-  }
-
-}
-
-class loan {
-  constructor(borrower, amount, interest, duration, quality){
-    this.borrower = borrower
-    this.principal = amount
-    this.interest = interest
-    this.quality = quality
-    this.duration = duration
-    this.date = frameCount
-    this.id = borrower.type + Bank.Loans.length
-
-    this.reimburse = function(sum) {
-      // If the borrower has enough money, proceed
-      if(this.borrower.money >= this.principal * ( 1 + this.interest) && this.principal > 0 ) {
-        borrower.money -= this.principal * ( 1 + this.interest)
-        Bank.money += this.interest * this.principal
-        Bank.profits += this.interest * this.principal
-        borrower.debt_charge[borrower.age] += this.principal * ( 1 + this.interest)
-        borrower.interest_charge[borrower.age] += this.principal *  this.interest
-        displayMoneyTransfer(borrower, Bank, this.principal, 250,0)
-        Bank.moneyDestruction += this.principal
-        this.principal -= this.principal
-        return true
-      }
-
-      // else error
-      else if(this.principal == 0) {
-        console.warn(" STUPID BANK TRY TO RECOVER ALREADY REPAID LOANS")
-      }
-
-      else {
-        // borrower.clor = [250,100,100]
-        console.warn("Borrower unable to repay loan", this)
-        borrower.solvability = "liquidity_bankruptcy"
-        return false 
-      }
-    }
-
-    this.reimburseDoubt = function() {
-      var sum = Math.min(this.borrower.money, this.principal)
-      if(this.borrower.money > 0 && this.principal > 0 ) {
-        borrower.money -= sum * ( 1 + this.interest)
-        Bank.money += this.interest * sum
-        Bank.profits += this.interest * sum
-        borrower.debt_charge[borrower.age] += sum * ( 1 + this.interest)
-        borrower.interest_charge[borrower.age] += sum *  this.interest
-        displayMoneyTransfer(borrower, Bank, sum, 250,0)
-        Bank.moneyDestruction += sum
-        this.principal -= sum
-        if(this.principal == 0) {
-          return true
+    this.bankruptcy = function(borrower) {
+      console.warn("BANKRUPTCY PROCEDURE", borrower, borrower.money, Bank.profits)
+      borrower.solvability = "bankrupt"
+      borrower.dismiss(borrower.employees.length)
+      var loss = 0
+      for(var i =0; i < borrower.Loans.length; i++) {
+        if(borrower.Loans[i].principal > 0) {
+          loss += borrower.Loans[i].default()
         }
       }
-
-      // else error
-      else if(this.principal == 0) {
-        console.warn(" STUPID BANK TRY TO RECOVER ALREADY REPAID LOANS")
+      console.log(loss)
+      loss -= borrower.money
+      this.money += borrower.money
+      borrower.money = 0
+      this.profits -= loss
+      console.log(loss, Bank.money)
+      Bank.money -= loss
+      if(Bank.money < 0) {
+        console.error("The Economy has Crashed")
+        Bank = BANKRUPT
       }
+      // dedi = deni
+      AgentsGarbage.push(borrower)
 
-      else {
-        // borrower.clor = [250,100,100]
-        console.warn("Borrower unable to repay loan", this)
-        borrower.solvability = "liquidity_bankruptcy"
-        return false 
+      for(var i = 0; i < Agents.length; i++){
+        if(Agents[i] === borrower){
+          Agents.splice(i,1);
+          i--
+        }
       }
     }
+
+    this.refund = function(loan, index) {
+      var newLoan = this.loanIssue(loan.borrower, loan.principal * (1 + loan.interest) + 1 , "doubtful")
+      loan.borrower.loans[t] += newLoan.principal
+      console.log(loan,newLoan)
+      var reimburse = loan.reimburse()
+      // console.log(reimburse)
+      if(reimburse){
+        this.oldLoans.push(this.Loans[index])
+        this.Loans.splice(index,1)
+      }
+      else{
+        console.error('BIG PROBLEM')
+        dnjzdizn = 0
+      }
+    }
+
 
   }
 
 }
+
 
 class currentAccount {
   constructor(owner){
@@ -399,11 +446,7 @@ class share {
     this.owner = owner
     this.amount = amount
     this.id = newShareID()
-    if(!this.owner.Shares[this.emetter.id]) {
-      this.owner.Shares[this.emetter.id] = []
-    }
-
-    this.owner.Shares[this.emetter.id].push(this)
+    this.owner.Shares.push(this)
 
     Shares.push(this)
 
@@ -411,28 +454,12 @@ class share {
       if(emetter.money > amount && amount > 0) {
         // console.log("PAYS DIVIDEND ", "amount : " + amount, emetter, owner)
         emetter.money -= amount
-        owner.money += amount
-        owner.dividends[t] += amount
-        // console.warn(emetter, "Pays dividend to lucky capitalist bastard ", owner)
+        this.owner.money += amount
+        this.owner.dividends[frameCount] += amount
       }
     }
   }
 }
-
-function bankruptcy(borrower, creditor) {
-  borrower.solvability = "bankrupt"
-  borrower.money = 0
-  borrower.dismiss(borrower.employees.length)
-  AgentsGarbage.push(borrower)
-
-  for(var i = 0; i < Agents.length; i++){
-    if(Agents[i] === borrower){
-      Agents.splice(i,1);
-      i--
-    }
-  }
-}
-
 
 function roundie(x) {
   return Math.round(x * 100) / 100

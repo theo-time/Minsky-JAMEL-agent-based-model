@@ -3,7 +3,6 @@
 	<link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="style2.css"/>
 	<script src= globals.js></script>
-	
 	<script src=agents/agent.js></script>
 	<script src="agents/firms/firm.js"></script>
 	<script src="agents/firms/capitalGoodFirm.js"></script>
@@ -15,10 +14,13 @@
 	<script src="agents/consumer.js"></script>
 	<script src="agents/smartFirm.js"></script>
 	<script src="population.js"></script>	
+	<script src="agents/State.js"></script>
 	<script src="main.js"></script>	
 	<script src="setup.js"></script>	
+	<script src="agents/loan.js"></script>	
 	<script src="UI/sankey.js"></script>
-	
+	<script src="UI/scatterPlot.js"></script>	
+	<script src="UI/histogram.js"></script>
 	<script src="lib/p5.js"></script>
 	<script src="lib/p5.dom.js"></script>
 	<script src="lib/d3.js"></script>
@@ -27,6 +29,7 @@
 	<script src="https://wagenaartje.github.io/neataptic/cdn/1.4.7/neataptic.js"></script>
 
 	<script src=objects.js></script> 
+	<script src="agents/stockMarket.js"></script> 
 
 </head>
 
@@ -36,6 +39,8 @@
 		<div id="years">10</div>
 		<div id="months">140</div>
 		<div id="FPS">30</div>
+		<select name="Firms" id="firm-select">
+		</select>
 	</div>
 
 	<div id="wrapper">
@@ -47,6 +52,7 @@
 				<div id="goodMarketButton" class="menuButton"> Goods Market </div>
 				<div id="canvaButton" class="menuButton"> Visualisation </div>
 				<div id="treemapButton" class="menuButton"> Treemap </div>
+				<div id="StateButton" class="menuButton"> State </div>
 				<div id="firmsButton" class="menuButton"> Firms </div>
 				<div id="workersButton" class="menuButton"> Workers </div>	
 				<div id="workersTableButton" class="menuButton"> Workers Tables </div>	

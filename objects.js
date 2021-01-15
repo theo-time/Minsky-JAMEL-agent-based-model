@@ -67,6 +67,7 @@ function operation (price, prop, q) {
 }
 
 function exchange(buyer, seller, prop, price, q) {
+  // console.warn(buyer, seller)
   if(buyer.money >= price * q && seller.stock[prop] != 0 && q > 0) {
     if(seller.stock[prop] <= q) {q = seller.stock[prop]}
     buyer.stock[prop] += q ;
@@ -95,21 +96,21 @@ function exchange(buyer, seller, prop, price, q) {
 
     return q 
   }
-  if(q < 0 ) { stop = stoppp}
-  console.warn("impossible to exchange", prop, price, q, buyer.money, seller.stock.food)
+  if(q <= 0 ) { stop = stoppp}
   return 0
 }
 
-function exchangeShare(seller, buyer, firmID, id, price) {
-  // Verify that the buyer owns the share
-  if(!seller.Shares[firmID].some( (element) => element.id == id )){
-    console.log(seller, "  does not posess stock of " + firmID + " " + id)
-    return
+function exchangeShare(buyer, seller, price) {
+  // Verify that the buyer owns a share
+  if(seller.Shares.length == 0){
+    console.log(seller, "  does not posess any share ")
+    return false
   }
 
   if(buyer.money >= price) {
     
-    moveElements(seller.Shares[firmID], buyer.Shares[firmID], (element) => element.id == id )
+    seller.Shares[seller.Shares.length - 1].owner = buyer
+    moveElements(seller.Shares, buyer.Shares, seller.Shares.length - 1)
 
     buyer.money -= price;
     seller.money += price;
@@ -126,10 +127,12 @@ function exchangeShare(seller, buyer, firmID, id, price) {
       pop()
     }
 
-    return 
+    return true
   }
-  console.warn(buyer, " has not enough money to buy share", price, buyer.money)
-  return 0
+  else{
+     console.warn(buyer, " has not enough money to buy share", price, buyer.money)
+    return false
+  }
 }
 
 function displayMoneyTransfer(agent1, agent2, sum, clor) {
@@ -227,7 +230,16 @@ function houseSkin(obj) {
 }
 
 
-function moveElements(source, target, moveCheck) {
+
+function moveElements(source, target, index) {
+    let element = source[index];
+    source.splice(index, 1);
+    target.push(element);
+}
+
+
+
+function oldmoveElements(source, target, moveCheck) {
     for (var i = 0; i < source.length; i++) {
         var element = source[i];
         if (moveCheck(element)) {

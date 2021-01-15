@@ -8,6 +8,8 @@ function agent(x, y, id, brain){
   this.pos = createVector(x,y);
   this.clor = [250,250,250];
   this.size = agentSize;
+  this.age = 0
+  this.creation = frameCount
 
   // SMART
   this.Tasks = []
@@ -25,18 +27,11 @@ function agent(x, y, id, brain){
 
   // Economic
   this.money = 0;
-  this.income = 0;
-  this.raw = 0;
-  this.food = 0;
-  this.alive = true;
-  this.consumption = 0.1;
   this.debt = 0;
   this.leverage = 0
-  this.Orders = [];
   this.Shares = []
-  this.Investments = [];
+  this.Bonds = []
   this.Loans = [];
-  this.Assets = [];
   this.buyOps = [];
   this.sellOps = [];
 
@@ -46,8 +41,8 @@ function agent(x, y, id, brain){
       show(this);
     }
 
-    this.borrow = function(amount) {
-        var newLoan = Bank.loanIssue(this, amount, "trustful")
+    this.borrow = function(amount, type) {
+        var newLoan = Bank.loanIssue(this, amount, "trustful", type)
         // console.log("agent borrow")
         if(newLoan != "fail") {
           // this.Loans.push(newLoan)
@@ -103,6 +98,22 @@ function agent(x, y, id, brain){
         }
       }
     }
+
+    this.payTax = function(sum) {
+      this.money -= sum;
+      state.money += sum;
+      state.tax_income[t] += sum
+      if(this.type == "firm"){
+        state.firmsTax[frameCount] += sum
+      }
+      if(this.type == "worker"){
+        state.workersTax[frameCount] += sum
+      }
+    }
+
+  this.ageing = function() {
+    this.age = frameCount - this.creation
+  }
 }
 
 

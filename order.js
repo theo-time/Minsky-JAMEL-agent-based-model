@@ -24,6 +24,7 @@ function limitedOrder(price, q, emetter, prop) {
 	this.type = "limited-order"
     this.q = q
     this.price = price
+    this.initQ = q
 }
 
 function bestlimitOrder(q, emetter, prop) {

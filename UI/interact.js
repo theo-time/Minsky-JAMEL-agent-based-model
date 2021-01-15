@@ -6,6 +6,21 @@ GlobalsElt = document.getElementById('Globals')
 MarketElt = document.getElementById("Market")
 paramElt = document.getElementById("param")
 
+firmSelector = document.getElementById("firm-select")
+firmSelector.oninput = function() {
+	console.log("new render")
+	renderFirm()
+}
+
+function fillFirmSelection() {
+	for(var i = 0; i < Firms.length; i++) {
+		var option = document.createElement("option")
+		option.value = Firms[i].id
+		option.innerHTML = Firms[i].id
+		firmSelector.appendChild(option)
+	}
+}
+
 VizElt = document.getElementById('viz')
 
 tradePanelElt = document.getElementById('tablePanel')
@@ -27,7 +42,6 @@ boostButtonElt.addEventListener('click', function() {
 	document.getElementById('viz').appendChild(canvas)
 })
 
-goodMarketButton
 
 graphButtonElt = document.getElementById('graphButton')
 graphButton.addEventListener('click', function() {
@@ -56,6 +70,15 @@ treemapButton.addEventListener('click', function() {
 	visual = "treemap"
 	clearSVG()
 })
+
+StateButtonElt = document.getElementById('StateButton')
+StateButtonElt.addEventListener('click', function() {
+	visual = "State"
+	clearSVG()
+})
+
+
+
 
 firmsButton.addEventListener('click', function() {
 	visual = "firms"
@@ -301,11 +324,8 @@ function sumProp(arr,prop) {
 	// console.warn("GDP CALC")
 	for(u=0; u < arr.length; u++) {
 
-		if(!(arr[u].solvability == "bankrupt")) {
-
-			output = output + arr[u][prop]
+		output = output + arr[u][prop]
 			
-		}
 	}
 	return output
 }

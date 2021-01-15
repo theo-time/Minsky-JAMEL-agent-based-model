@@ -58,19 +58,21 @@ function initialisation() {
   for(var i=0; i < nbr_consumers; i++) {
     Workers.push(new Worker(100 + 50*i, 430,i))
   }
+  Capitalists = samplie(Workers, 30)
 
   for(var i=0; i < nbr_industrials; i++) {
     var firm = new Firm(100*i + 100,250,i, "food")
-    firm.stockIssue(5)
+    firm.stockIssue(100)
     Firms.push(firm)
   }
-
+  fillFirmSelection();
   // for(var i=0; i < nbr_industrials; i++) {
   //   var firm = new Firm(100*i + 100,250,i, "jewels")
   //   firm.stockIssue(5)
   //   Firms.push(firm)
   // }
 
+  FirmsPop = new Population2(Firms)
 
   // ------ MARKETS ----------
 
@@ -82,6 +84,7 @@ function initialisation() {
   Bank = new bank(400, 60, "bank", 0)
   Bank.stockIssue(5)
 
+  state = new State(100, 100, "state")
 
   // ------ Globals initialisation -----------
 
