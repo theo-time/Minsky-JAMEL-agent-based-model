@@ -440,7 +440,6 @@ function Quantiles(arr, prop, n) {
 	for(var i = 0; i < n; i++) {
 		output[i] = sumProp2(output[i], prop)
 	}	
-	console.log(output)
 
 
 	return output
