@@ -125,8 +125,8 @@ var graphSize = 450
 var timePeriod = 10
 
 var Dates = []
-var frameTime = 1
-var FPS = 100
+var frameTime = 100
+var FPS = 1
 var Duration = 0 
 
 var basePrice = 0
