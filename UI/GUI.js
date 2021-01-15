@@ -256,7 +256,7 @@ function userInterface() {
         // printTables(Firms[0].balanceSheet.Assets)
         // printTables(Firms[0].balanceSheet.Liabilities)
         break
-
+        draw()
     }
 
 }

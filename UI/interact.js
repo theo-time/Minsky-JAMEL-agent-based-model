@@ -47,6 +47,7 @@ graphButtonElt = document.getElementById('graphButton')
 graphButton.addEventListener('click', function() {
 	visual = "graphics"
 	clearSVG(); 
+	userInterface()
 })
 
 goodMarketButtonElt = document.getElementById('goodMarketButton')
