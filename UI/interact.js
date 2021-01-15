@@ -54,6 +54,7 @@ goodMarketButtonElt = document.getElementById('goodMarketButton')
 goodMarketButtonElt.addEventListener('click', function() {
 	visual = "goodMarket"
 	clearSVG(); 
+	userInterface()
 })
 
 
@@ -70,12 +71,14 @@ treemapButtonElt = document.getElementById('treemapButton')
 treemapButton.addEventListener('click', function() {
 	visual = "treemap"
 	clearSVG()
+	userInterface()
 })
 
 StateButtonElt = document.getElementById('StateButton')
 StateButtonElt.addEventListener('click', function() {
 	visual = "State"
 	clearSVG()
+	userInterface()
 })
 
 
@@ -96,12 +99,14 @@ workersTableButton = document.getElementById('workersTableButton')
 workersTableButton.addEventListener('click', function() {
 	visual = "workersTable"
 	clearSVG()
+	userInterface()
 })
 
 workersGraphButton = document.getElementById('workersGraphButton')
 workersGraphButton.addEventListener('click', function() {
 	visual = "workersGraph"
 	clearSVG()
+	userInterface()
 })
 
 
@@ -115,24 +120,28 @@ BankButtonElt = document.getElementById('bankButton')
 BankButtonElt.addEventListener('click', function() {
 	visual = "bankTable"
 	clearSVG()
+	userInterface()
 })
 
 BankChartElt = document.getElementById('bankChart')
 BankChartElt.addEventListener('click', function() {
 	visual = "bankCharts"
 	clearSVG()
+	userInterface()
 })
 
 firmTableButton = document.getElementById('firmTableButton')
 firmTableButton.addEventListener('click', function() {
 	visual = "firmTable"
 	clearSVG()
+	userInterface()
 })
 
 firmGraphButton = document.getElementById('firmGraphButton')
 firmGraphButton.addEventListener('click', function() {
 	visual = "firmCharts"
 	clearSVG()
+	userInterface()
 })
 
 function keyPressed() {
